@@ -4,7 +4,7 @@
 from typing import List, Optional, Tuple, Dict, Any
 from sqlalchemy.orm import joinedload
 from database.connection import get_session
-from database.models import Department, Discipline, Teacher
+from database.models import Department, Discipline, Teacher, WorkloadPool
 
 
 # --- КАФЕДРЫ ---
@@ -69,6 +69,8 @@ def delete_department(dept_id: int) -> Tuple[bool, str]:
         if not dept:
             return False, "Кафедра не найдена!"
         name = dept.name
+        if dept.teachers or dept.disciplines:
+            return False, "Сначала перенесите преподавателей и удалите дисциплины кафедры."
         session.delete(dept)
         session.commit()
         return True, f"Кафедра '{name}' успешно удалена!"
@@ -143,6 +145,8 @@ def delete_discipline(disc_id: int) -> Tuple[bool, str]:
         if not disc:
             return False, "Дисциплина не найдена!"
         name = disc.name
+        if disc.workloads or disc.pools:
+            return False, "Дисциплина используется в общем плане или назначениях нагрузки."
         session.delete(disc)
         session.commit()
         return True, f"Дисциплина '{name}' успешно удалена!"

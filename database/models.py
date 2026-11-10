@@ -1,12 +1,12 @@
 """
 SQLAlchemy ORM модели базы данных.
 Полностью соответствует ER-диаграмме проекта:
-Roles, Users, Departments, Teachers, Disciplines, TeacherWorkload.
+Roles, Users, Departments, Teachers, Disciplines, WorkloadPool, TeacherWorkload.
 """
 from datetime import date
 from typing import List, Optional
 from sqlalchemy import (
-    Column, Integer, String, Date, ForeignKey, Text
+    Column, Integer, String, Date, ForeignKey, Text, UniqueConstraint, CheckConstraint
 )
 from sqlalchemy.orm import declarative_base, relationship
 
@@ -62,6 +62,9 @@ class Teacher(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     full_name = Column(String(200), nullable=False)
+    last_name = Column(String(100), nullable=False, default="")
+    first_name = Column(String(100), nullable=False, default="")
+    middle_name = Column(String(100), nullable=False, default="")
     birth_date = Column(Date, nullable=True)
     phone = Column(String(50), nullable=True)
     email = Column(String(100), nullable=True)
@@ -93,17 +96,54 @@ class Discipline(Base):
 
     department = relationship("Department", back_populates="disciplines")
     workloads = relationship("TeacherWorkload", back_populates="discipline", cascade="all, delete-orphan")
+    pools = relationship("WorkloadPool", back_populates="discipline")
 
     def __repr__(self):
         return f"<Discipline(id={self.id}, code='{self.code}', name='{self.name}')>"
 
 
+class WorkloadPool(Base):
+    """План часов для группы, дисциплины и семестра учебного года."""
+    __tablename__ = "workload_pools"
+    __table_args__ = (
+        UniqueConstraint("academic_year", "semester", "group_name", "discipline_id", name="uq_pool_period_group"),
+        CheckConstraint("hours_lecture >= 0 AND hours_practice >= 0 AND weeks > 0"),
+        CheckConstraint("semester IN (0, 1, 2)"),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    academic_year = Column(String(20), nullable=False)
+    semester = Column(Integer, nullable=False)
+    group_name = Column(String(100), nullable=False)
+    discipline_id = Column(Integer, ForeignKey("disciplines.id"), nullable=False)
+    hours_lecture = Column(Integer, nullable=False, default=0)
+    hours_practice = Column(Integer, nullable=False, default=0)
+    weeks = Column(Integer, nullable=False, default=18)
+    discipline = relationship("Discipline", back_populates="pools")
+    workloads = relationship("TeacherWorkload", back_populates="pool")
+
+    @property
+    def total_hours(self):
+        return self.hours_lecture + self.hours_practice
+
+    @property
+    def available_lecture(self):
+        return self.hours_lecture - sum(w.hours_lecture for w in self.workloads)
+
+    @property
+    def available_practice(self):
+        return self.hours_practice - sum(w.hours_practice for w in self.workloads)
+
+
 class TeacherWorkload(Base):
     """Таблица TeacherWorkload (Распределение учебной нагрузки)"""
     __tablename__ = "teacher_workload"
+    __table_args__ = (UniqueConstraint("pool_id", "teacher_id", name="uq_assignment_pool_teacher"),)
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     academic_year = Column(String(20), nullable=False)  # 2024-2025
+    semester = Column(Integer, nullable=False, default=0)
+    pool_id = Column(Integer, ForeignKey("workload_pools.id"), nullable=True)
     hours_lecture = Column(Integer, default=0)
     hours_practice = Column(Integer, default=0)
     total_hours = Column(Integer, default=0)
@@ -113,6 +153,11 @@ class TeacherWorkload(Base):
 
     teacher = relationship("Teacher", back_populates="workloads")
     discipline = relationship("Discipline", back_populates="workloads")
+    pool = relationship("WorkloadPool", back_populates="workloads")
+
+    @property
+    def hours_per_week(self):
+        return round(self.total_hours / self.pool.weeks, 2) if self.pool else 0
 
     def __repr__(self):
         return f"<TeacherWorkload(id={self.id}, teacher_id={self.teacher_id}, disc_id={self.discipline_id}, total={self.total_hours})>"

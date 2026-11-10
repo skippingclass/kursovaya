@@ -1,0 +1,132 @@
+{
+  "date": "2026-11-10T23:44:54",
+  "total": 31,
+  "failures": 0,
+  "errors": 0,
+  "tests": [
+    {
+      "test": "test_system.SystemTests.test_backup_round_trip_and_atomic_rollback",
+      "status": "passed"
+    },
+    {
+      "test": "test_system.SystemTests.test_concurrent_capacity",
+      "status": "passed"
+    },
+    {
+      "test": "test_system.SystemTests.test_contact_duplicate",
+      "status": "passed"
+    },
+    {
+      "test": "test_system.SystemTests.test_cyrillic_search",
+      "status": "passed"
+    },
+    {
+      "test": "test_system.SystemTests.test_delete_assignment_returns_hours",
+      "status": "passed"
+    },
+    {
+      "test": "test_system.SystemTests.test_delete_teacher_returns_hours",
+      "status": "passed"
+    },
+    {
+      "test": "test_system.SystemTests.test_duplicate_assignment_and_multiple_groups",
+      "status": "passed"
+    },
+    {
+      "test": "test_system.SystemTests.test_excel_pdf_export_matches_filters",
+      "status": "passed"
+    },
+    {
+      "test": "test_system.SystemTests.test_existing_database_migration_is_idempotent",
+      "status": "passed"
+    },
+    {
+      "test": "test_system.SystemTests.test_failed_edit_keeps_both_balances",
+      "status": "passed"
+    },
+    {
+      "test": "test_system.SystemTests.test_filters_semester_teacher",
+      "status": "passed"
+    },
+    {
+      "test": "test_system.SystemTests.test_legacy_backup_preserved",
+      "status": "passed"
+    },
+    {
+      "test": "test_system.SystemTests.test_missing_pool_rejected",
+      "status": "passed"
+    },
+    {
+      "test": "test_system.SystemTests.test_normalized_exact_duplicate",
+      "status": "passed"
+    },
+    {
+      "test": "test_system.SystemTests.test_numeric_sort",
+      "status": "passed"
+    },
+    {
+      "test": "test_system.SystemTests.test_overallocation_rejected",
+      "status": "passed"
+    },
+    {
+      "test": "test_system.SystemTests.test_plan_cannot_shrink_below_assignments",
+      "status": "passed"
+    },
+    {
+      "test": "test_system.SystemTests.test_pool_validation_and_duplicate",
+      "status": "passed"
+    },
+    {
+      "test": "test_system.SystemTests.test_rate_is_per_year_and_720_boundary",
+      "status": "passed"
+    },
+    {
+      "test": "test_system.SystemTests.test_reduction_returns_hours",
+      "status": "passed"
+    },
+    {
+      "test": "test_system.SystemTests.test_remaining_by_type_and_week",
+      "status": "passed"
+    },
+    {
+      "test": "test_system.SystemTests.test_separate_names",
+      "status": "passed"
+    },
+    {
+      "test": "test_system.SystemTests.test_teacher_validation",
+      "status": "passed"
+    },
+    {
+      "test": "test_system.SystemTests.test_transfer_between_pools",
+      "status": "passed"
+    },
+    {
+      "test": "test_system.SystemTests.test_typo_requires_explicit_override",
+      "status": "passed"
+    },
+    {
+      "test": "test_system.SystemTests.test_update_own_card_not_duplicate",
+      "status": "passed"
+    },
+    {
+      "test": "test_ui.UITests.test_dialogs_and_phone_mask",
+      "status": "passed"
+    },
+    {
+      "test": "test_ui.UITests.test_main_window_all_tabs",
+      "status": "passed"
+    },
+    {
+      "test": "test_ui.UITests.test_methodist_buttons_hidden",
+      "status": "passed"
+    },
+    {
+      "test": "test_ui.UITests.test_report_filters_and_refresh_preserved",
+      "status": "passed"
+    },
+    {
+      "test": "test_ui.UITests.test_table_numbers_sort_numerically",
+      "status": "passed"
+    }
+  ]
+}

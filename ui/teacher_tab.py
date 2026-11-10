@@ -16,6 +16,8 @@ from services.auth_service import is_operator
 from services.report_service import export_teachers_to_excel, export_teachers_to_pdf
 from ui.teacher_dialog import TeacherDialog
 from ui.teacher_card_dialog import TeacherCardDialog
+from services.workload_service import get_academic_years
+from datetime import date
 
 
 class TeacherTab(QWidget):
@@ -108,6 +110,27 @@ class TeacherTab(QWidget):
         filters_row.addWidget(self.spin_max_exp)
 
         filter_layout.addLayout(filters_row)
+        sort_row = QHBoxLayout()
+        self.combo_year = QComboBox()
+        self.combo_year.addItems(get_academic_years())
+        current = date.today().year - (date.today().month < 9)
+        self.combo_year.setCurrentText(f"{current}-{current+1}")
+        self.combo_rate = QComboBox()
+        for label, value in [("Любая нагрузка", None), ("Меньше ставки (< 720 ч.)", "below"),
+                             ("Ровно ставка (720 ч.)", "equal"), ("Больше ставки (> 720 ч.)", "above")]:
+            self.combo_rate.addItem(label, value)
+        self.combo_sort = QComboBox()
+        for label, value in [("ФИО", "full_name"), ("Стаж", "experience"), ("Часы за год", "total_hours"), ("Кафедра", "department")]:
+            self.combo_sort.addItem(label, value)
+        self.combo_direction = QComboBox()
+        self.combo_direction.addItem("По возрастанию", False)
+        self.combo_direction.addItem("По убыванию", True)
+        for label, combo in [("Нагрузка за год", self.combo_year), ("Ставка", self.combo_rate),
+                             ("Сортировать по", self.combo_sort), ("Порядок", self.combo_direction)]:
+            sort_row.addWidget(QLabel(label))
+            sort_row.addWidget(combo, 1)
+            combo.currentIndexChanged.connect(self.refresh_table)
+        filter_layout.addLayout(sort_row)
         main_layout.addWidget(filter_frame)
 
         # 2. Панель действий (Монохромные кнопки)
@@ -149,7 +172,7 @@ class TeacherTab(QWidget):
         # 3. Таблица преподавателей
         self.table = QTableWidget()
         self.table.setColumnCount(9)
-        headers = ["ID", "ФИО преподавателя", "Кафедра / Отделение", "Квалификация", "Стаж", "Телефон", "E-mail", "Статус", "Всего часов"]
+        headers = ["ID", "ФИО преподавателя", "Кафедра / Отделение", "Квалификация", "Стаж", "Телефон", "E-mail", "Статус", "Часы за выбранный год"]
         self.table.setHorizontalHeaderLabels(headers)
         self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
@@ -170,12 +193,20 @@ class TeacherTab(QWidget):
         self.btn_delete.setVisible(can_edit)
 
     def load_filters(self):
+        selected_department = self.combo_dept.currentData()
+        selected_year = self.combo_year.currentText()
+        self.combo_year.blockSignals(True)
+        self.combo_year.clear()
+        self.combo_year.addItems(get_academic_years())
+        self.combo_year.setCurrentText(selected_year)
+        self.combo_year.blockSignals(False)
         self.combo_dept.blockSignals(True)
         self.combo_dept.clear()
         self.combo_dept.addItem("Все кафедры", 0)
         departments = get_departments()
         for dept in departments:
             self.combo_dept.addItem(dept.name, dept.id)
+        self.combo_dept.setCurrentIndex(max(0, self.combo_dept.findData(selected_department)))
         self.combo_dept.blockSignals(False)
 
     def reset_filters(self):
@@ -185,6 +216,9 @@ class TeacherTab(QWidget):
         self.combo_status.setCurrentIndex(0)
         self.spin_min_exp.setValue(0)
         self.spin_max_exp.setValue(70)
+        self.combo_rate.setCurrentIndex(0)
+        self.combo_sort.setCurrentIndex(0)
+        self.combo_direction.setCurrentIndex(0)
         self.refresh_table()
 
     def get_selected_teacher_id(self) -> Optional[int]:
@@ -211,7 +245,11 @@ class TeacherTab(QWidget):
             qualification=qualification,
             status=status,
             min_exp=min_exp,
-            max_exp=max_exp
+            max_exp=max_exp,
+            sort_by=self.combo_sort.currentData(),
+            descending=self.combo_direction.currentData(),
+            academic_year=self.combo_year.currentText(),
+            rate_filter=self.combo_rate.currentData()
         )
 
         self.table.setRowCount(len(teachers))
@@ -233,7 +271,7 @@ class TeacherTab(QWidget):
             st_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.table.setItem(row, 7, st_item)
 
-            hrs_item = QTableWidgetItem(str(t.total_hours))
+            hrs_item = QTableWidgetItem(str(t.period_hours))
             hrs_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.table.setItem(row, 8, hrs_item)
 
@@ -290,7 +328,7 @@ class TeacherTab(QWidget):
             "Excel файлы (*.xlsx)"
         )
         if filepath:
-            ok, msg = export_teachers_to_excel(filepath, department_id=dept_id)
+            ok, msg = export_teachers_to_excel(filepath, **self.export_filters())
             if ok:
                 QMessageBox.information(self, "Экспорт в Excel", msg)
             else:
@@ -305,8 +343,15 @@ class TeacherTab(QWidget):
             "PDF файлы (*.pdf)"
         )
         if filepath:
-            ok, msg = export_teachers_to_pdf(filepath, department_id=dept_id)
+            ok, msg = export_teachers_to_pdf(filepath, **self.export_filters())
             if ok:
                 QMessageBox.information(self, "Экспорт в PDF", msg)
             else:
                 QMessageBox.critical(self, "Ошибка экспорта", msg)
+
+    def export_filters(self):
+        return dict(department_id=self.combo_dept.currentData(), search_text=self.input_search.text(),
+            qualification=self.combo_qual.currentText(), status=self.combo_status.currentText(),
+            min_exp=self.spin_min_exp.value(), max_exp=self.spin_max_exp.value(),
+            sort_by=self.combo_sort.currentData(), descending=self.combo_direction.currentData(),
+            academic_year=self.combo_year.currentText(), rate_filter=self.combo_rate.currentData())

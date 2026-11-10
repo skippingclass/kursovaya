@@ -5,11 +5,13 @@
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTableWidget, QTableWidgetItem, QHeaderView, QGroupBox,
-    QFrame, QMessageBox
+    QFrame, QMessageBox, QComboBox
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 from services.teacher_service import get_teacher_by_id
+from services.workload_service import get_academic_years, semester_label
+from ui.workload_tab import fill_table
 
 
 class TeacherCardDialog(QDialog):
@@ -17,7 +19,7 @@ class TeacherCardDialog(QDialog):
         super().__init__(parent)
         self.teacher_id = teacher_id
         self.setWindowTitle("Карточка преподавателя")
-        self.setFixedSize(720, 600)
+        self.resize(1050, 650)
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint)
 
         self.init_ui()
@@ -95,6 +97,18 @@ class TeacherCardDialog(QDialog):
         wl_title.setStyleSheet("font-weight: 700; color: #ffffff; font-size: 13px;")
         wl_layout.addWidget(wl_title)
 
+        filters = QHBoxLayout()
+        self.combo_year, self.combo_semester = QComboBox(), QComboBox()
+        self.combo_year.addItem("Все годы", None)
+        for year in get_academic_years():
+            self.combo_year.addItem(year, year)
+        for label, value in [("Все семестры", None), ("1", 1), ("2", 2), ("Не указан (архив)", 0)]:
+            self.combo_semester.addItem(label, value)
+        filters.addWidget(self.combo_year)
+        filters.addWidget(self.combo_semester)
+        wl_layout.addLayout(filters)
+        self.combo_year.currentIndexChanged.connect(self.load_data)
+        self.combo_semester.currentIndexChanged.connect(self.load_data)
         self.table_wl = QTableWidget()
         self.table_wl.setColumnCount(6)
         self.table_wl.setHorizontalHeaderLabels(["Учебный год", "Код", "Дисциплина", "Лекции (ч)", "Практики (ч)", "Всего (ч)"])
@@ -145,30 +159,11 @@ class TeacherCardDialog(QDialog):
         bdate = teacher.birth_date.strftime("%d.%m.%Y") if teacher.birth_date else "-"
         self.lbl_birth.setText(f"<b style='color:#71717a;'>Дата рожд.:</b> {bdate}")
 
-        # Нагрузка
-        workloads = teacher.workloads or []
-        self.table_wl.setRowCount(len(workloads))
-        total_all_hours = 0
-
-        for row, wl in enumerate(workloads):
-            self.table_wl.setItem(row, 0, QTableWidgetItem(wl.academic_year))
-            code = wl.discipline.code if wl.discipline else "-"
-            disc_name = wl.discipline.name if wl.discipline else "-"
-            self.table_wl.setItem(row, 1, QTableWidgetItem(code))
-            self.table_wl.setItem(row, 2, QTableWidgetItem(disc_name))
-
-            lec_item = QTableWidgetItem(str(wl.hours_lecture))
-            lec_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.table_wl.setItem(row, 3, lec_item)
-
-            prac_item = QTableWidgetItem(str(wl.hours_practice))
-            prac_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.table_wl.setItem(row, 4, prac_item)
-
-            tot_item = QTableWidgetItem(str(wl.total_hours))
-            tot_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.table_wl.setItem(row, 5, tot_item)
-
-            total_all_hours += wl.total_hours
-
-        self.lbl_total_hours.setText(f"ИТОГО ПЕДАГОГИЧЕСКАЯ НАГРУЗКА: {total_all_hours} часов")
+        year, semester = self.combo_year.currentData(), self.combo_semester.currentData()
+        workloads = [w for w in teacher.workloads if (not year or w.academic_year == year)
+                     and (semester is None or w.semester == semester)]
+        fill_table(self.table_wl, ["Учебный год", "Семестр", "Группа", "Дисциплина", "Теория", "Практика", "Всего", "Часов в неделю"],
+            [[w.academic_year, semester_label(w.semester), w.pool.group_name if w.pool else "", w.discipline.name,
+              w.hours_lecture, w.hours_practice, w.total_hours, w.hours_per_week] for w in workloads])
+        self.lbl_total_hours.setText(f"За выбранный период: теория {sum(w.hours_lecture for w in workloads)} ч.; "
+            f"практика {sum(w.hours_practice for w in workloads)} ч.; всего {sum(w.total_hours for w in workloads)} ч.")

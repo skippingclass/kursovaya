@@ -9,7 +9,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QAction, QFont
-from config import APP_NAME, COLLEGE_NAME, APP_VERSION, load_config
+from config import APP_NAME, COLLEGE_NAME, APP_VERSION, load_config, BASE_DIR
 from services.auth_service import get_current_user, logout, is_admin, is_operator
 from database.backup import create_backup, restore_backup
 from ui.teacher_tab import TeacherTab
@@ -191,6 +191,11 @@ class MainWindow(QMainWindow):
         act_guide = QAction("Руководство пользователя", self)
         act_guide.triggered.connect(self.show_user_guide)
         help_menu.addAction(act_guide)
+        for label, filename in [("Руководство разработчика", "Руководство_разработчика.pdf"),
+                                ("Требования к программному обеспечению", "Требования_к_ПО.pdf")]:
+            action = QAction(label, self)
+            action.triggered.connect(lambda checked=False, name=filename: self.open_document(name))
+            help_menu.addAction(action)
 
         act_about = QAction("О программе", self)
         act_about.triggered.connect(self.show_about_dialog)
@@ -277,13 +282,15 @@ class MainWindow(QMainWindow):
                     QMessageBox.critical(self, "Ошибка", msg)
 
     def show_user_guide(self):
+        if self.open_document("Руководство_пользователя.pdf"):
+            return
         guide_text = f"""
         <h3>Руководство пользователя</h3>
         <p><b>{COLLEGE_NAME}</b></p>
         <p><b>Основные возможности системы:</b></p>
         <ul>
             <li><b>Преподаватели:</b> Ведение личных дел, мгновенная фильтрация по ФИО, кафедре, стажу и категории.</li>
-            <li><b>Учебная нагрузка:</b> Распределение лекционных и практических часов по учебным годам.</li>
+            <li><b>Учебная нагрузка:</b> Добавьте общий план для группы, года и семестра. Выберите строку и назначьте часы преподавателю. При отмене назначения часы возвращаются в план.</li>
             <li><b>Кафедры и дисциплины:</b> Справочники подразделений и учебных предметов.</li>
             <li><b>Отчеты:</b> Экспорт сводных ведомостей в Excel (.xlsx) и PDF (.pdf).</li>
             <li><b>Пользователи:</b> Администрирование учетных записей (для роли 'Администратор').</li>
@@ -291,10 +298,18 @@ class MainWindow(QMainWindow):
         """
         QMessageBox.about(self, "Руководство пользователя", guide_text)
 
+    def open_document(self, filename):
+        from PyQt6.QtGui import QDesktopServices
+        from PyQt6.QtCore import QUrl
+        path = BASE_DIR / "docs" / filename
+        return path.exists() and QDesktopServices.openUrl(QUrl.fromLocalFile(str(path)))
+
     def show_about_dialog(self):
         about_text = f"""
         <h3>{APP_NAME} v{APP_VERSION}</h3>
         <p><b>Учебное заведение:</b> {COLLEGE_NAME}</p>
+        <p><b>Автор:</b> Евполов Владислав, группа П-24-67Б</p>
+        <p><b>GitHub:</b> <a href="https://github.com/skippingclass">skippingclass</a></p>
         <p><b>Стек технологий:</b> Python 3.12, PyQt6, PostgreSQL / SQLite (SQLAlchemy ORM), Openpyxl, ReportLab.</p>
         <p>Современный интерфейс в монохромной стилистике.</p>
         """

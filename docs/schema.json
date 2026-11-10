@@ -1,0 +1,381 @@
+[
+  {
+    "name": "departments",
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "nullable": false,
+        "primary_key": true,
+        "unique": false,
+        "foreign_key": ""
+      },
+      {
+        "name": "name",
+        "type": "VARCHAR(200)",
+        "nullable": false,
+        "primary_key": false,
+        "unique": false,
+        "foreign_key": ""
+      },
+      {
+        "name": "head_name",
+        "type": "VARCHAR(200)",
+        "nullable": true,
+        "primary_key": false,
+        "unique": false,
+        "foreign_key": ""
+      }
+    ]
+  },
+  {
+    "name": "roles",
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "nullable": false,
+        "primary_key": true,
+        "unique": false,
+        "foreign_key": ""
+      },
+      {
+        "name": "name",
+        "type": "VARCHAR(100)",
+        "nullable": false,
+        "primary_key": false,
+        "unique": true,
+        "foreign_key": ""
+      }
+    ]
+  },
+  {
+    "name": "disciplines",
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "nullable": false,
+        "primary_key": true,
+        "unique": false,
+        "foreign_key": ""
+      },
+      {
+        "name": "code",
+        "type": "VARCHAR(50)",
+        "nullable": false,
+        "primary_key": false,
+        "unique": false,
+        "foreign_key": ""
+      },
+      {
+        "name": "name",
+        "type": "VARCHAR(200)",
+        "nullable": false,
+        "primary_key": false,
+        "unique": false,
+        "foreign_key": ""
+      },
+      {
+        "name": "department_id",
+        "type": "INTEGER",
+        "nullable": false,
+        "primary_key": false,
+        "unique": false,
+        "foreign_key": "departments.id"
+      }
+    ]
+  },
+  {
+    "name": "teachers",
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "nullable": false,
+        "primary_key": true,
+        "unique": false,
+        "foreign_key": ""
+      },
+      {
+        "name": "full_name",
+        "type": "VARCHAR(200)",
+        "nullable": false,
+        "primary_key": false,
+        "unique": false,
+        "foreign_key": ""
+      },
+      {
+        "name": "last_name",
+        "type": "VARCHAR(100)",
+        "nullable": false,
+        "primary_key": false,
+        "unique": false,
+        "foreign_key": ""
+      },
+      {
+        "name": "first_name",
+        "type": "VARCHAR(100)",
+        "nullable": false,
+        "primary_key": false,
+        "unique": false,
+        "foreign_key": ""
+      },
+      {
+        "name": "middle_name",
+        "type": "VARCHAR(100)",
+        "nullable": false,
+        "primary_key": false,
+        "unique": false,
+        "foreign_key": ""
+      },
+      {
+        "name": "birth_date",
+        "type": "DATE",
+        "nullable": true,
+        "primary_key": false,
+        "unique": false,
+        "foreign_key": ""
+      },
+      {
+        "name": "phone",
+        "type": "VARCHAR(50)",
+        "nullable": true,
+        "primary_key": false,
+        "unique": false,
+        "foreign_key": ""
+      },
+      {
+        "name": "email",
+        "type": "VARCHAR(100)",
+        "nullable": true,
+        "primary_key": false,
+        "unique": false,
+        "foreign_key": ""
+      },
+      {
+        "name": "qualification",
+        "type": "VARCHAR(100)",
+        "nullable": true,
+        "primary_key": false,
+        "unique": false,
+        "foreign_key": ""
+      },
+      {
+        "name": "experience",
+        "type": "INTEGER",
+        "nullable": true,
+        "primary_key": false,
+        "unique": false,
+        "foreign_key": ""
+      },
+      {
+        "name": "department_id",
+        "type": "INTEGER",
+        "nullable": false,
+        "primary_key": false,
+        "unique": false,
+        "foreign_key": "departments.id"
+      },
+      {
+        "name": "status",
+        "type": "VARCHAR(50)",
+        "nullable": true,
+        "primary_key": false,
+        "unique": false,
+        "foreign_key": ""
+      },
+      {
+        "name": "photo_path",
+        "type": "VARCHAR(300)",
+        "nullable": true,
+        "primary_key": false,
+        "unique": false,
+        "foreign_key": ""
+      }
+    ]
+  },
+  {
+    "name": "users",
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "nullable": false,
+        "primary_key": true,
+        "unique": false,
+        "foreign_key": ""
+      },
+      {
+        "name": "username",
+        "type": "VARCHAR(100)",
+        "nullable": false,
+        "primary_key": false,
+        "unique": true,
+        "foreign_key": ""
+      },
+      {
+        "name": "password_hash",
+        "type": "VARCHAR(256)",
+        "nullable": false,
+        "primary_key": false,
+        "unique": false,
+        "foreign_key": ""
+      },
+      {
+        "name": "role_id",
+        "type": "INTEGER",
+        "nullable": false,
+        "primary_key": false,
+        "unique": false,
+        "foreign_key": "roles.id"
+      }
+    ]
+  },
+  {
+    "name": "workload_pools",
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "nullable": false,
+        "primary_key": true,
+        "unique": false,
+        "foreign_key": ""
+      },
+      {
+        "name": "academic_year",
+        "type": "VARCHAR(20)",
+        "nullable": false,
+        "primary_key": false,
+        "unique": false,
+        "foreign_key": ""
+      },
+      {
+        "name": "semester",
+        "type": "INTEGER",
+        "nullable": false,
+        "primary_key": false,
+        "unique": false,
+        "foreign_key": ""
+      },
+      {
+        "name": "group_name",
+        "type": "VARCHAR(100)",
+        "nullable": false,
+        "primary_key": false,
+        "unique": false,
+        "foreign_key": ""
+      },
+      {
+        "name": "discipline_id",
+        "type": "INTEGER",
+        "nullable": false,
+        "primary_key": false,
+        "unique": false,
+        "foreign_key": "disciplines.id"
+      },
+      {
+        "name": "hours_lecture",
+        "type": "INTEGER",
+        "nullable": false,
+        "primary_key": false,
+        "unique": false,
+        "foreign_key": ""
+      },
+      {
+        "name": "hours_practice",
+        "type": "INTEGER",
+        "nullable": false,
+        "primary_key": false,
+        "unique": false,
+        "foreign_key": ""
+      },
+      {
+        "name": "weeks",
+        "type": "INTEGER",
+        "nullable": false,
+        "primary_key": false,
+        "unique": false,
+        "foreign_key": ""
+      }
+    ]
+  },
+  {
+    "name": "teacher_workload",
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "nullable": false,
+        "primary_key": true,
+        "unique": false,
+        "foreign_key": ""
+      },
+      {
+        "name": "academic_year",
+        "type": "VARCHAR(20)",
+        "nullable": false,
+        "primary_key": false,
+        "unique": false,
+        "foreign_key": ""
+      },
+      {
+        "name": "semester",
+        "type": "INTEGER",
+        "nullable": false,
+        "primary_key": false,
+        "unique": false,
+        "foreign_key": ""
+      },
+      {
+        "name": "pool_id",
+        "type": "INTEGER",
+        "nullable": true,
+        "primary_key": false,
+        "unique": false,
+        "foreign_key": "workload_pools.id"
+      },
+      {
+        "name": "hours_lecture",
+        "type": "INTEGER",
+        "nullable": true,
+        "primary_key": false,
+        "unique": false,
+        "foreign_key": ""
+      },
+      {
+        "name": "hours_practice",
+        "type": "INTEGER",
+        "nullable": true,
+        "primary_key": false,
+        "unique": false,
+        "foreign_key": ""
+      },
+      {
+        "name": "total_hours",
+        "type": "INTEGER",
+        "nullable": true,
+        "primary_key": false,
+        "unique": false,
+        "foreign_key": ""
+      },
+      {
+        "name": "teacher_id",
+        "type": "INTEGER",
+        "nullable": false,
+        "primary_key": false,
+        "unique": false,
+        "foreign_key": "teachers.id"
+      },
+      {
+        "name": "discipline_id",
+        "type": "INTEGER",
+        "nullable": false,
+        "primary_key": false,
+        "unique": false,
+        "foreign_key": "disciplines.id"
+      }
+    ]
+  }
+]

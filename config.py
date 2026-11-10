@@ -8,7 +8,7 @@ from pathlib import Path
 
 APP_NAME = "Система учета преподавателей"
 COLLEGE_NAME = "Высший колледж «Astana Polytechnic»"
-APP_VERSION = "1.0.0"
+APP_VERSION = "2.0.0"
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"

@@ -1,177 +1,219 @@
-"""
-Сервис учета и распределения педагогической нагрузки (LoadModule)
-Расчет часов, закрепление дисциплин за преподавателями.
-"""
-from typing import List, Optional, Tuple, Dict, Any
+"""План учебной нагрузки и распределение часов из общего пула."""
+import re
+from datetime import date
+from sqlalchemy import text
 from sqlalchemy.orm import joinedload
 from database.connection import get_session
-from database.models import TeacherWorkload, Teacher, Discipline, Department
+from database.models import TeacherWorkload, WorkloadPool, Teacher, Discipline
+
+RATE_HOURS = 720
 
 
-def get_workloads(
-    academic_year: Optional[str] = None,
-    teacher_id: Optional[int] = None,
-    department_id: Optional[int] = None
-) -> List[TeacherWorkload]:
+def semester_label(value):
+    return str(value) if value in (1, 2) else "Не указан"
+
+
+def get_workloads(academic_year=None, teacher_id=None, department_id=None, semester=None):
     session = get_session()
     try:
         query = session.query(TeacherWorkload).options(
             joinedload(TeacherWorkload.teacher).joinedload(Teacher.department),
-            joinedload(TeacherWorkload.discipline)
-        )
-
+            joinedload(TeacherWorkload.discipline), joinedload(TeacherWorkload.pool))
         if academic_year and academic_year != "Все годы":
             query = query.filter(TeacherWorkload.academic_year == academic_year)
-
-        if teacher_id and teacher_id > 0:
+        if teacher_id:
             query = query.filter(TeacherWorkload.teacher_id == teacher_id)
-
-        if department_id and department_id > 0:
+        if department_id:
             query = query.join(TeacherWorkload.teacher).filter(Teacher.department_id == department_id)
-
-        query = query.order_by(TeacherWorkload.academic_year.desc(), TeacherWorkload.id.desc())
-        return query.all()
+        if semester is not None:
+            query = query.filter(TeacherWorkload.semester == semester)
+        return query.order_by(TeacherWorkload.academic_year.desc(), TeacherWorkload.semester,
+                              TeacherWorkload.id).all()
     finally:
         session.close()
 
 
-def get_academic_years() -> List[str]:
-    """Список всех учебных годов в базе данных"""
+def get_pools(academic_year=None, semester=None, department_id=None):
     session = get_session()
     try:
-        res = session.query(TeacherWorkload.academic_year).distinct().all()
-        years = [r[0] for r in res if r[0]]
-        # Если пусто или нет актуальных, добавим текущие годы
-        defaults = ["2023-2024", "2024-2025", "2025-2026", "2026-2027"]
-        combined = sorted(list(set(years + defaults)), reverse=True)
-        return combined
+        query = session.query(WorkloadPool).options(joinedload(WorkloadPool.discipline),
+                                                   joinedload(WorkloadPool.workloads))
+        if academic_year and academic_year != "Все годы":
+            query = query.filter(WorkloadPool.academic_year == academic_year)
+        if semester is not None:
+            query = query.filter(WorkloadPool.semester == semester)
+        if department_id:
+            query = query.join(WorkloadPool.discipline).filter(Discipline.department_id == department_id)
+        return query.order_by(WorkloadPool.academic_year.desc(), WorkloadPool.semester,
+                              WorkloadPool.group_name, WorkloadPool.id).all()
     finally:
         session.close()
 
 
-def add_workload(
-    academic_year: str,
-    teacher_id: int,
-    discipline_id: int,
-    hours_lecture: int,
-    hours_practice: int
-) -> Tuple[bool, str, Optional[int]]:
-    if not academic_year or not academic_year.strip():
-        return False, "Укажите учебный год!", None
-    if not teacher_id or teacher_id <= 0:
-        return False, "Выберите преподавателя!", None
-    if not discipline_id or discipline_id <= 0:
-        return False, "Выберите дисциплину!", None
-
-    try:
-        hl = int(hours_lecture)
-        hp = int(hours_practice)
-        if hl < 0 or hp < 0:
-            return False, "Часы нагрузки не могут быть отрицательными!", None
-        total = hl + hp
-        if total <= 0:
-            return False, "Суммарная нагрузка должна быть больше 0 часов!", None
-    except ValueError:
-        return False, "Часы должны быть целыми неотрицательными числами!", None
-
+def get_academic_years():
     session = get_session()
     try:
-        # Проверим, нет ли дубликата нагрузки для этого преподавателя, дисциплины и года
-        existing = session.query(TeacherWorkload).filter(
-            TeacherWorkload.academic_year == academic_year.strip(),
-            TeacherWorkload.teacher_id == teacher_id,
-            TeacherWorkload.discipline_id == discipline_id
-        ).first()
-        if existing:
-            return False, "Для данного преподавателя уже назначена нагрузка по этой дисциплине в указанном учебном году!", None
+        years = {r[0] for r in session.query(TeacherWorkload.academic_year).distinct()}
+        years.update(r[0] for r in session.query(WorkloadPool.academic_year).distinct())
+        current = date.today().year - (date.today().month < 9)
+        years.update(f"{y}-{y+1}" for y in range(current-2, current+3))
+        return sorted(years, reverse=True)
+    finally:
+        session.close()
 
-        wl = TeacherWorkload(
-            academic_year=academic_year.strip(),
-            teacher_id=teacher_id,
-            discipline_id=discipline_id,
-            hours_lecture=hl,
-            hours_practice=hp,
-            total_hours=total
-        )
-        session.add(wl)
+
+def _hours(lecture, practice):
+    try:
+        hl, hp = int(lecture), int(practice)
+        if hl != float(lecture) or hp != float(practice) or min(hl, hp) < 0 or hl + hp <= 0:
+            raise ValueError
+        return hl, hp
+    except (TypeError, ValueError, OverflowError):
+        raise ValueError("Укажите целые неотрицательные часы; сумма должна быть больше нуля.")
+
+
+def _write_lock(session):
+    # SQLite не поддерживает FOR UPDATE; резервируем запись до чтения остатка.
+    if session.bind.dialect.name == "sqlite":
+        session.execute(text("BEGIN IMMEDIATE"))
+
+
+def save_pool(academic_year, semester, group_name, discipline_id, hours_lecture,
+              hours_practice, weeks=18, pool_id=None):
+    session = get_session()
+    try:
+        if not re.fullmatch(r"\d{4}-\d{4}", academic_year.strip()):
+            raise ValueError("Учебный год вводится в формате 2026-2027.")
+        start, end = map(int, academic_year.split("-"))
+        if end != start + 1:
+            raise ValueError("Учебный год должен охватывать два последовательных года.")
+        if semester not in (1, 2) or not group_name.strip() or len(group_name.strip()) > 100:
+            raise ValueError("Выберите семестр 1 или 2 и укажите группу (до 100 символов).")
+        hl, hp = _hours(hours_lecture, hours_practice)
+        if not 1 <= int(weeks) <= 52:
+            raise ValueError("Количество учебных недель должно быть от 1 до 52.")
+        _write_lock(session)
+        pool = session.query(WorkloadPool).filter_by(id=pool_id).with_for_update().first() if pool_id else None
+        if pool_id and not pool:
+            raise ValueError("Строка общего плана не найдена.")
+        if not session.get(Discipline, discipline_id):
+            raise ValueError("Выберите существующую дисциплину.")
+        duplicate = session.query(WorkloadPool).filter_by(
+            academic_year=academic_year.strip(), semester=semester,
+            group_name=group_name.strip().upper(), discipline_id=discipline_id)
+        if pool_id:
+            duplicate = duplicate.filter(WorkloadPool.id != pool_id)
+        if duplicate.first():
+            raise ValueError("План для этой группы, дисциплины и семестра уже существует.")
+        if pool:
+            if hl < sum(w.hours_lecture for w in pool.workloads) or hp < sum(w.hours_practice for w in pool.workloads):
+                raise ValueError("План нельзя уменьшить ниже уже назначенных часов теории или практики.")
+            if pool.workloads and discipline_id != pool.discipline_id:
+                raise ValueError("Сначала отмените назначения, чтобы изменить дисциплину плана.")
+        else:
+            pool = WorkloadPool()
+            session.add(pool)
+        pool.academic_year, pool.semester = academic_year.strip(), semester
+        pool.group_name, pool.discipline_id = group_name.strip().upper(), discipline_id
+        pool.hours_lecture, pool.hours_practice, pool.weeks = hl, hp, int(weeks)
+        for w in pool.workloads:
+            w.academic_year, w.semester, w.discipline_id = pool.academic_year, semester, discipline_id
         session.commit()
-        return True, "Учебная нагрузка успешно добавлена!", wl.id
-    except Exception as e:
+        return True, "Общий план сохранен.", pool.id
+    except (ValueError, TypeError, AttributeError) as exc:
         session.rollback()
-        return False, f"Ошибка добавления нагрузки: {e}", None
+        return False, str(exc), None
+    except Exception as exc:
+        session.rollback()
+        return False, f"Не удалось сохранить план: {exc}", None
     finally:
         session.close()
 
 
-def update_workload(
-    workload_id: int,
-    academic_year: str,
-    teacher_id: int,
-    discipline_id: int,
-    hours_lecture: int,
-    hours_practice: int
-) -> Tuple[bool, str]:
-    if not academic_year or not academic_year.strip():
-        return False, "Укажите учебный год!"
-    if not teacher_id or teacher_id <= 0:
-        return False, "Выберите преподавателя!"
-    if not discipline_id or discipline_id <= 0:
-        return False, "Выберите дисциплину!"
-
-    try:
-        hl = int(hours_lecture)
-        hp = int(hours_practice)
-        if hl < 0 or hp < 0:
-            return False, "Часы нагрузки не могут быть отрицательными!"
-        total = hl + hp
-        if total <= 0:
-            return False, "Суммарная нагрузка должна быть больше 0 часов!"
-    except ValueError:
-        return False, "Часы должны быть целыми неотрицательными числами!"
-
+def delete_pool(pool_id):
     session = get_session()
     try:
-        wl = session.query(TeacherWorkload).filter(TeacherWorkload.id == workload_id).first()
-        if not wl:
-            return False, "Запись о нагрузке не найдена!"
-
-        # Проверка дубликата при изменении
-        dup = session.query(TeacherWorkload).filter(
-            TeacherWorkload.id != workload_id,
-            TeacherWorkload.academic_year == academic_year.strip(),
-            TeacherWorkload.teacher_id == teacher_id,
-            TeacherWorkload.discipline_id == discipline_id
-        ).first()
-        if dup:
-            return False, "Такая нагрузка уже существует для выбранного преподавателя и дисциплины!"
-
-        wl.academic_year = academic_year.strip()
-        wl.teacher_id = teacher_id
-        wl.discipline_id = discipline_id
-        wl.hours_lecture = hl
-        wl.hours_practice = hp
-        wl.total_hours = total
-
+        _write_lock(session)
+        pool = session.query(WorkloadPool).filter_by(id=pool_id).with_for_update().first()
+        if not pool:
+            return False, "Строка плана не найдена."
+        if pool.workloads:
+            return False, "Сначала отмените назначения преподавателям из этой строки плана."
+        session.delete(pool)
         session.commit()
-        return True, "Нагрузка успешно обновлена!"
-    except Exception as e:
+        return True, "Строка общего плана удалена."
+    except Exception as exc:
         session.rollback()
-        return False, f"Ошибка обновления нагрузки: {e}"
+        return False, str(exc)
     finally:
         session.close()
 
 
-def delete_workload(workload_id: int) -> Tuple[bool, str]:
+def _save_assignment(teacher_id, pool_id, lecture, practice, workload_id=None):
     session = get_session()
     try:
-        wl = session.query(TeacherWorkload).filter(TeacherWorkload.id == workload_id).first()
-        if not wl:
-            return False, "Запись о нагрузке не найдена!"
-        session.delete(wl)
+        hl, hp = _hours(lecture, practice)
+        _write_lock(session)
+        assignment = session.get(TeacherWorkload, workload_id) if workload_id else None
+        if workload_id and not assignment:
+            raise ValueError("Назначение не найдено.")
+        # Один порядок захвата блокировок при переносе между двумя пулами.
+        pool_ids = sorted({i for i in (pool_id, assignment.pool_id if assignment else None) if i})
+        pools = session.query(WorkloadPool).filter(WorkloadPool.id.in_(pool_ids)).order_by(WorkloadPool.id).with_for_update().all()
+        pool = next((p for p in pools if p.id == pool_id), None)
+        if not pool:
+            raise ValueError("Выберите строку общего плана нагрузки.")
+        teacher = session.get(Teacher, teacher_id)
+        if not teacher or teacher.status == "уволен":
+            raise ValueError("Выберите действующего преподавателя.")
+        others = session.query(TeacherWorkload).filter_by(pool_id=pool.id).all()
+        others = [w for w in others if w.id != workload_id]
+        if any(w.teacher_id == teacher_id for w in others):
+            raise ValueError("У преподавателя уже есть назначение из этой строки плана. Отредактируйте его.")
+        free_l = pool.hours_lecture - sum(w.hours_lecture for w in others)
+        free_p = pool.hours_practice - sum(w.hours_practice for w in others)
+        if hl > free_l or hp > free_p:
+            raise ValueError(f"Недостаточно часов в общем плане. Доступно: теория {free_l} ч., практика {free_p} ч.")
+        if not assignment:
+            assignment = TeacherWorkload()
+            session.add(assignment)
+        assignment.teacher_id, assignment.pool_id = teacher_id, pool.id
+        assignment.discipline_id, assignment.academic_year = pool.discipline_id, pool.academic_year
+        assignment.semester = pool.semester
+        assignment.hours_lecture, assignment.hours_practice, assignment.total_hours = hl, hp, hl + hp
         session.commit()
-        return True, "Запись о нагрузке успешно удалена!"
-    except Exception as e:
+        return True, "Назначение сохранено; остаток общего плана пересчитан.", assignment.id
+    except Exception as exc:
         session.rollback()
-        return False, f"Ошибка удаления нагрузки: {e}"
+        return False, str(exc), None
+    finally:
+        session.close()
+
+
+def add_workload(academic_year, teacher_id, discipline_id, hours_lecture, hours_practice,
+                 semester=None, pool_id=None):
+    return _save_assignment(teacher_id, pool_id, hours_lecture, hours_practice)
+
+
+def update_workload(workload_id, academic_year, teacher_id, discipline_id,
+                    hours_lecture, hours_practice, semester=None, pool_id=None):
+    ok, msg, _ = _save_assignment(teacher_id, pool_id, hours_lecture, hours_practice, workload_id)
+    return ok, msg
+
+
+def delete_workload(workload_id):
+    session = get_session()
+    try:
+        _write_lock(session)
+        workload = session.get(TeacherWorkload, workload_id)
+        if not workload:
+            return False, "Назначение не найдено."
+        session.query(WorkloadPool).filter_by(id=workload.pool_id).with_for_update().first()
+        session.delete(workload)
+        session.commit()
+        return True, "Назначение отменено. Часы возвращены в общий план."
+    except Exception as exc:
+        session.rollback()
+        return False, str(exc)
     finally:
         session.close()

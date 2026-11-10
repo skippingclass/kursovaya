@@ -1,185 +1,183 @@
-"""
-Сервис управления кадрами и преподавателями (TeacherModule, SearchModule)
-CRUD операции, расширенный многокритериальный поиск и фильтрация.
-"""
+"""Карточки преподавателей, проверка похожих записей, поиск и сортировка."""
+import re
+import unicodedata
 from datetime import date
-from typing import List, Optional, Tuple, Dict, Any
-from sqlalchemy import or_, and_
+from difflib import SequenceMatcher
 from sqlalchemy.orm import joinedload
 from database.connection import get_session
-from database.models import Teacher, Department, TeacherWorkload
+from database.models import Teacher, TeacherWorkload, Department
 
 
-def get_teachers(
-    search_text: Optional[str] = None,
-    department_id: Optional[int] = None,
-    qualification: Optional[str] = None,
-    status: Optional[str] = None,
-    min_exp: Optional[int] = None,
-    max_exp: Optional[int] = None
-) -> List[Teacher]:
-    """
-    Алгоритм поиска и фильтрации преподавателей (Раздел 6.2):
-    Многокритериальная фильтрация по ФИО, кафедре, категории, статусу и стажу.
-    """
+def normalize_name(value):
+    return " ".join(unicodedata.normalize("NFKC", value or "").casefold().replace("ё", "е").split())
+
+
+def _prepare(data):
+    result = dict(data)
+    if "last_name" not in result:
+        parts = (result.get("full_name") or "").split(maxsplit=2)
+        result.update(last_name=parts[0] if parts else "", first_name=parts[1] if len(parts) > 1 else "",
+                      middle_name=parts[2] if len(parts) > 2 else "")
+    for key in ("last_name", "first_name", "middle_name", "phone", "email", "qualification"):
+        result[key] = " ".join((result.get(key) or "").split())
+    result["full_name"] = " ".join(result[k] for k in ("last_name", "first_name", "middle_name") if result[k])
+    return result
+
+
+def get_teachers(search_text=None, department_id=None, qualification=None, status=None,
+                 min_exp=None, max_exp=None, sort_by="full_name", descending=False,
+                 academic_year=None, rate_filter=None):
     session = get_session()
     try:
-        query = session.query(Teacher).options(
-            joinedload(Teacher.department),
-            joinedload(Teacher.workloads)
-        )
-
-        # Контекстный поиск по ФИО, телефону или email
-        if search_text:
-            st = f"%{search_text.strip().lower()}%"
-            query = query.filter(
-                or_(
-                    Teacher.full_name.ilike(st),
-                    Teacher.phone.ilike(st),
-                    Teacher.email.ilike(st)
-                )
-            )
-
-        # Фильтр по кафедре
-        if department_id and department_id > 0:
+        query = session.query(Teacher).options(joinedload(Teacher.department), joinedload(Teacher.workloads))
+        if department_id:
             query = query.filter(Teacher.department_id == department_id)
-
-        # Фильтр по категории
         if qualification and qualification != "Все категории":
             query = query.filter(Teacher.qualification == qualification)
-
-        # Фильтр по статусу
         if status and status != "Все статусы":
             query = query.filter(Teacher.status == status)
-
-        # Фильтр по стажу работы
-        if min_exp is not None and min_exp >= 0:
+        if min_exp is not None:
             query = query.filter(Teacher.experience >= min_exp)
-        if max_exp is not None and max_exp >= 0:
+        if max_exp is not None:
             query = query.filter(Teacher.experience <= max_exp)
-
-        # Сортировка по ФИО
-        query = query.order_by(Teacher.full_name.asc())
-        return query.all()
+        teachers = query.all()
+        # SQLite LOWER не обрабатывает кириллицу: casefold одинаков для обеих СУБД.
+        if search_text:
+            needle = normalize_name(search_text)
+            teachers = [t for t in teachers if needle in normalize_name(f"{t.full_name} {t.phone or ''} {t.email or ''}")]
+        for teacher in teachers:
+            teacher.period_hours = sum(w.total_hours for w in teacher.workloads
+                                       if not academic_year or w.academic_year == academic_year)
+        compare = {"below": lambda h: h < 720, "equal": lambda h: h == 720, "above": lambda h: h > 720}
+        if rate_filter in compare:
+            teachers = [t for t in teachers if compare[rate_filter](t.period_hours)]
+        keys = {"full_name": lambda t: normalize_name(t.full_name), "experience": lambda t: t.experience or 0,
+                "total_hours": lambda t: t.period_hours,
+                "department": lambda t: normalize_name(t.department.name if t.department else "")}
+        teachers.sort(key=lambda t: (normalize_name(t.full_name), t.id))
+        teachers.sort(key=keys.get(sort_by, keys["full_name"]), reverse=descending)
+        return teachers
     finally:
         session.close()
 
 
-def get_teacher_by_id(teacher_id: int) -> Optional[Teacher]:
-    """Получение подробных данных преподавателя по ID с привязкой кафедры и нагрузок"""
+def get_teacher_by_id(teacher_id):
     session = get_session()
     try:
-        return session.query(Teacher).options(
-            joinedload(Teacher.department),
-            joinedload(Teacher.workloads).joinedload(TeacherWorkload.discipline)
-        ).filter(Teacher.id == teacher_id).first()
+        return session.query(Teacher).options(joinedload(Teacher.department),
+            joinedload(Teacher.workloads).joinedload(TeacherWorkload.discipline),
+            joinedload(Teacher.workloads).joinedload(TeacherWorkload.pool)).filter_by(id=teacher_id).first()
     finally:
         session.close()
 
 
-def validate_teacher_data(data: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
-    """Валидация полей карточки преподавателя"""
-    full_name = data.get("full_name", "").strip()
-    if not full_name:
-        return False, "Поле 'ФИО' обязательно для заполнения!"
-    if len(full_name) < 3:
-        return False, "ФИО должно содержать не менее 3 символов!"
-
-    dept_id = data.get("department_id")
-    if not dept_id or dept_id <= 0:
-        return False, "Необходимо выбрать кафедру/отделение!"
-
-    experience = data.get("experience", 0)
+def validate_teacher_data(data):
+    data = _prepare(data)
+    for key, label in (("last_name", "Фамилия"), ("first_name", "Имя")):
+        if not data[key]:
+            return False, f"Поле «{label}» обязательно."
+    for key in ("last_name", "first_name", "middle_name"):
+        value = data[key]
+        if len(value) > 100 or (value and not all(c.isalpha() or c in " -'’" for c in value)):
+            return False, "В ФИО допустимы буквы, пробел, дефис и апостроф; до 100 символов в поле."
+    if len(data["full_name"]) > 200:
+        return False, "Суммарная длина ФИО не должна превышать 200 символов."
     try:
-        exp = int(experience)
-        if exp < 0 or exp > 70:
-            return False, "Стаж работы должен быть в диапазоне от 0 до 70 лет!"
-    except ValueError:
-        return False, "Стаж работы должен быть целым числом!"
-
-    email = data.get("email", "").strip()
-    if email and ("@" not in email or "." not in email):
-        return False, "Некорректный формат адреса электронной почты (example@mail.kz)!"
-
+        if int(data.get("department_id") or 0) <= 0:
+            return False, "Выберите кафедру."
+        if not 0 <= int(data.get("experience", 0)) <= 70:
+            return False, "Стаж должен быть от 0 до 70 лет."
+    except (ValueError, TypeError):
+        return False, "Стаж и идентификатор кафедры должны быть целыми числами."
+    if data["email"] and not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", data["email"]):
+        return False, "Укажите почту в формате name@example.kz."
+    digits = re.sub(r"\D", "", data["phone"])
+    if data["phone"] and (len(digits) != 11 or digits[0] not in "78"):
+        return False, "Телефон должен содержать 11 цифр и начинаться с +7 или 8."
+    birth = data.get("birth_date")
+    if birth and (not isinstance(birth, date) or birth > date.today()):
+        return False, "Дата рождения не может быть в будущем."
     return True, None
 
 
-def add_teacher(data: Dict[str, Any]) -> Tuple[bool, str, Optional[int]]:
-    """Добавление новой карточки преподавателя"""
-    valid, err = validate_teacher_data(data)
-    if not valid:
-        return False, err, None
+def _duplicates(session, data, exclude_id=None):
+    matches = []
+    name = normalize_name(data["full_name"])
+    phone = re.sub(r"\D", "", data["phone"])
+    phone = "7" + phone[1:] if phone else ""
+    for teacher in session.query(Teacher).all():
+        if teacher.id == exclude_id:
+            continue
+        candidate = normalize_name(teacher.full_name)
+        contact = re.sub(r"\D", "", teacher.phone or "")
+        contact = "7" + contact[1:] if contact else ""
+        same_contact = (phone and phone == contact) or (data["email"] and data["email"].casefold() == (teacher.email or "").casefold())
+        if candidate == name or same_contact:
+            matches.append((teacher, True))
+        elif SequenceMatcher(None, candidate, name).ratio() >= 0.88:
+            matches.append((teacher, False))
+    return matches
 
+
+def find_similar_teachers(data, exclude_id=None):
     session = get_session()
     try:
-        teacher = Teacher(
-            full_name=data["full_name"].strip(),
-            birth_date=data.get("birth_date"),
-            phone=data.get("phone", "").strip(),
-            email=data.get("email", "").strip(),
-            qualification=data.get("qualification", "").strip(),
-            experience=int(data.get("experience", 0)),
-            department_id=int(data["department_id"]),
-            status=data.get("status", "работает"),
-            photo_path=data.get("photo_path")
-        )
+        return [{"id": t.id, "full_name": t.full_name, "exact": exact} for t, exact in _duplicates(session, _prepare(data), exclude_id)]
+    finally:
+        session.close()
+
+
+def _save_teacher(data, teacher_id=None, allow_similar=False):
+    data = _prepare(data)
+    valid, error = validate_teacher_data(data)
+    if not valid:
+        return False, error, None
+    session = get_session()
+    try:
+        if not session.get(Department, data["department_id"]):
+            return False, "Кафедра не найдена.", None
+        matches = _duplicates(session, data, teacher_id)
+        if any(exact for _, exact in matches):
+            return False, "Преподаватель с таким ФИО, телефоном или почтой уже существует.", None
+        if matches and not allow_similar:
+            return False, "Найдена похожая карточка: " + ", ".join(t.full_name for t, _ in matches) + ". Проверьте опечатку.", None
+        teacher = session.get(Teacher, teacher_id) if teacher_id else Teacher()
+        if teacher is None:
+            return False, "Преподаватель не найден.", None
+        for key in ("full_name", "last_name", "first_name", "middle_name", "birth_date", "phone", "email",
+                    "qualification", "experience", "department_id", "status", "photo_path"):
+            if key in data:
+                setattr(teacher, key, data[key])
         session.add(teacher)
         session.commit()
-        teacher_id = teacher.id
-        return True, "Преподаватель успешно добавлен!", teacher_id
-    except Exception as e:
+        return True, "Карточка преподавателя сохранена.", teacher.id
+    except Exception as exc:
         session.rollback()
-        return False, f"Ошибка добавления: {e}", None
+        return False, f"Не удалось сохранить карточку: {exc}", None
     finally:
         session.close()
 
 
-def update_teacher(teacher_id: int, data: Dict[str, Any]) -> Tuple[bool, str]:
-    """Редактирование данных преподавателя"""
-    valid, err = validate_teacher_data(data)
-    if not valid:
-        return False, err
+def add_teacher(data, allow_similar=False):
+    return _save_teacher(data, allow_similar=allow_similar)
 
+
+def update_teacher(teacher_id, data, allow_similar=False):
+    ok, message, _ = _save_teacher(data, teacher_id, allow_similar)
+    return ok, message
+
+
+def delete_teacher(teacher_id):
     session = get_session()
     try:
-        teacher = session.query(Teacher).filter(Teacher.id == teacher_id).first()
+        teacher = session.get(Teacher, teacher_id)
         if not teacher:
-            return False, "Преподаватель не найден!"
-
-        teacher.full_name = data["full_name"].strip()
-        teacher.birth_date = data.get("birth_date")
-        teacher.phone = data.get("phone", "").strip()
-        teacher.email = data.get("email", "").strip()
-        teacher.qualification = data.get("qualification", "").strip()
-        teacher.experience = int(data.get("experience", 0))
-        teacher.department_id = int(data["department_id"])
-        teacher.status = data.get("status", "работает")
-        if "photo_path" in data:
-            teacher.photo_path = data["photo_path"]
-
-        session.commit()
-        return True, "Данные преподавателя успешно обновлены!"
-    except Exception as e:
-        session.rollback()
-        return False, f"Ошибка обновления: {e}"
-    finally:
-        session.close()
-
-
-def delete_teacher(teacher_id: int) -> Tuple[bool, str]:
-    """Удаление карточки преподавателя и связанных нагрузок"""
-    session = get_session()
-    try:
-        teacher = session.query(Teacher).filter(Teacher.id == teacher_id).first()
-        if not teacher:
-            return False, "Преподаватель не найден!"
-
-        name = teacher.full_name
+            return False, "Преподаватель не найден."
         session.delete(teacher)
         session.commit()
-        return True, f"Преподаватель '{name}' успешно удален!"
-    except Exception as e:
+        return True, "Карточка удалена. Назначенные часы возвращены в общий план."
+    except Exception as exc:
         session.rollback()
-        return False, f"Ошибка удаления: {e}"
+        return False, str(exc)
     finally:
         session.close()

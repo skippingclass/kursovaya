@@ -49,3 +49,7 @@ settings.json
 # Microsoft Office temporary lock files
 ~$*
 
+
+# Generated internal verification files
+/tmp/
+*.before-v2.bak

@@ -4,6 +4,9 @@
 """
 
 APP_STYLE = """
+QTableWidget {
+    alternate-background-color: #141419;
+}
 /* Базовые стили окон */
 QMainWindow, QDialog {
     background-color: #09090b;
@@ -17,6 +20,10 @@ QWidget {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     font-size: 13px;
     background-color: transparent;
+}
+
+QMainWindow, QDialog {
+    background-color: #09090b;
 }
 
 /* Верхнее меню */
