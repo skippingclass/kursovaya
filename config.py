@@ -8,7 +8,7 @@ from pathlib import Path
 
 APP_NAME = "Система учета преподавателей"
 COLLEGE_NAME = "Высший колледж «Astana Polytechnic»"
-APP_VERSION = "2.0.0"
+APP_VERSION = "2.1.0"
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
@@ -52,6 +52,9 @@ def save_config(config: dict):
         json.dump(config, f, ensure_ascii=False, indent=4)
 
 def get_database_url() -> str:
+    override = os.environ.get("COLLEGE_DB_URL")
+    if override:
+        return override
     cfg = load_config()
     if cfg.get("db_type") == "postgresql":
         host = cfg.get("pg_host", "localhost")

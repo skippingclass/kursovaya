@@ -1,4 +1,5 @@
 """Карточки преподавателей, проверка похожих записей, поиск и сортировка."""
+import logging
 import re
 import unicodedata
 from datetime import date
@@ -6,6 +7,8 @@ from difflib import SequenceMatcher
 from sqlalchemy.orm import joinedload
 from database.connection import get_session
 from database.models import Teacher, TeacherWorkload, Department
+
+LOG = logging.getLogger(__name__)
 
 
 def normalize_name(value):
@@ -151,9 +154,10 @@ def _save_teacher(data, teacher_id=None, allow_similar=False):
         session.add(teacher)
         session.commit()
         return True, "Карточка преподавателя сохранена.", teacher.id
-    except Exception as exc:
+    except Exception:
         session.rollback()
-        return False, f"Не удалось сохранить карточку: {exc}", None
+        LOG.exception("Could not save teacher")
+        return False, "Не удалось сохранить карточку.", None
     finally:
         session.close()
 
@@ -176,8 +180,9 @@ def delete_teacher(teacher_id):
         session.delete(teacher)
         session.commit()
         return True, "Карточка удалена. Назначенные часы возвращены в общий план."
-    except Exception as exc:
+    except Exception:
         session.rollback()
-        return False, str(exc)
+        LOG.exception("Could not delete teacher")
+        return False, "Не удалось удалить карточку."
     finally:
         session.close()

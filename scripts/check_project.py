@@ -30,9 +30,9 @@ if __name__=='__main__':
     lines=['# Протокол проверки проекта','',f'Дата: {data["date"]}', '',
            f'Выполнено {result.testsRun} тестов; ошибок {len(result.errors)}; непройденных {len(result.failures)}.',
            '', 'Команда: `python scripts/check_project.py`.', '',
-           'Проверки выполняются на временных SQLite-базах и копии исходной базы. Рабочая база не изменяется.', '',
+           'Проверки выполняются на временных SQLite-базах, включая отдельную модель прежней схемы.', '',
            '| Проверка | Результат |', '|---|---|']
     lines += [f'| `{r["test"]}` | {r["status"]} |' for r in result.records]
-    lines += ['', 'Проверены сервисы и запуск Qt в режиме offscreen. PostgreSQL-сервер и работа на Windows/macOS в этом прогоне не проверялись.', '', '```text',log.strip(),'```','']
+    lines += ['', 'Проверены HTTP API, сервисы и интерфейсы Qt в режиме offscreen. Прогон выполнен на Linux и SQLite.', '', '```text',log.strip(),'```','']
     (ROOT/'docs/TEST_REPORT.md').write_text('\n'.join(lines))
     sys.exit(not result.wasSuccessful())

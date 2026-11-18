@@ -1,6 +1,6 @@
 """Проверки бизнес-сценариев на временных БД; рабочая база не изменяется."""
 import json
-import shutil
+import sqlite3
 import tempfile
 import unittest
 from concurrent.futures import ThreadPoolExecutor
@@ -230,14 +230,33 @@ class SystemTests(unittest.TestCase):
         self.assertIn('Петрова',text); self.assertNotIn('Евполов',text); self.assertIn('2026-2027',text)
 
     def test_existing_database_migration_is_idempotent(self):
-        source=Path(__file__).resolve().parents[1]/'data/college_teachers.db'
-        import sqlite3
-        copy=self.root/'legacy.db'; shutil.copy2(source,copy)
-        with sqlite3.connect(copy) as c:
-            before=c.execute('SELECT id, full_name FROM teachers ORDER BY id').fetchall()
-            hours=c.execute('SELECT id, total_hours FROM teacher_workload ORDER BY id').fetchall()
-        connection._engine.dispose(); connection._engine=create_engine(f'sqlite:///{copy}')
-        connection.init_db(); connection.init_db()
+        copy = self.root / "legacy.db"
+        connection._engine.dispose()
+        connection._engine = create_engine(f"sqlite:///{copy}")
+        legacy_tables = {"teachers", "teacher_workload", "workload_pools"}
+        Base.metadata.create_all(connection._engine, tables=[
+            table for table in Base.metadata.sorted_tables if table.name not in legacy_tables])
+        with sqlite3.connect(copy) as db:
+            db.executescript("""
+                CREATE TABLE teachers (
+                    id INTEGER PRIMARY KEY, full_name TEXT NOT NULL, birth_date DATE, phone TEXT,
+                    email TEXT, qualification TEXT, experience INTEGER, department_id INTEGER NOT NULL,
+                    status TEXT, photo_path TEXT
+                );
+                CREATE TABLE teacher_workload (
+                    id INTEGER PRIMARY KEY, academic_year TEXT NOT NULL, hours_lecture INTEGER,
+                    hours_practice INTEGER, total_hours INTEGER, teacher_id INTEGER NOT NULL,
+                    discipline_id INTEGER NOT NULL
+                );
+                INSERT INTO departments (id, name) VALUES (1, 'Информатика');
+                INSERT INTO disciplines (id, code, name, department_id) VALUES (1, 'ИС-1', 'Базы данных', 1);
+                INSERT INTO teachers (id, full_name, department_id) VALUES (7, 'Иванова Анна Олеговна', 1);
+                INSERT INTO teacher_workload VALUES (11, '2025-2026', 20, 30, 50, 7, 1);
+            """)
+            before = db.execute("SELECT id, full_name FROM teachers ORDER BY id").fetchall()
+            hours = db.execute("SELECT id, total_hours FROM teacher_workload ORDER BY id").fetchall()
+        connection.init_db()
+        connection.init_db()
         self.assertEqual([(t.id,t.full_name) for t in sorted(get_teachers(),key=lambda t:t.id)],before)
         self.assertEqual([(w.id,w.total_hours) for w in sorted(get_workloads(),key=lambda w:w.id)],hours)
         self.assertEqual(len(get_pools()),len(hours))

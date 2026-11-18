@@ -1,16 +1,11 @@
 """
 Начальное заполнение базы данных (демо-данные колледжа «Astana Polytechnic»)
 """
-import hashlib
 from datetime import date
 from sqlalchemy.orm import Session
 from database.models import Role, User, Department, Discipline, Teacher, TeacherWorkload
 from config import ROLE_ADMIN, ROLE_OPERATOR, ROLE_METHODIST
-
-
-def hash_password(password: str) -> str:
-    """Хэширование пароля алгоритмом SHA-256"""
-    return hashlib.sha256(password.encode("utf-8")).hexdigest()
+from services.passwords import hash_password
 
 
 def seed_database(session: Session):

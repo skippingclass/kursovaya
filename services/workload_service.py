@@ -1,4 +1,5 @@
 """План учебной нагрузки и распределение часов из общего пула."""
+import logging
 import re
 from datetime import date
 from sqlalchemy import text
@@ -7,6 +8,7 @@ from database.connection import get_session
 from database.models import TeacherWorkload, WorkloadPool, Teacher, Discipline
 
 RATE_HOURS = 720
+LOG = logging.getLogger(__name__)
 
 
 def semester_label(value):
@@ -123,9 +125,10 @@ def save_pool(academic_year, semester, group_name, discipline_id, hours_lecture,
     except (ValueError, TypeError, AttributeError) as exc:
         session.rollback()
         return False, str(exc), None
-    except Exception as exc:
+    except Exception:
         session.rollback()
-        return False, f"Не удалось сохранить план: {exc}", None
+        LOG.exception("Could not save workload plan")
+        return False, "Не удалось сохранить план.", None
     finally:
         session.close()
 
@@ -142,9 +145,10 @@ def delete_pool(pool_id):
         session.delete(pool)
         session.commit()
         return True, "Строка общего плана удалена."
-    except Exception as exc:
+    except Exception:
         session.rollback()
-        return False, str(exc)
+        LOG.exception("Could not delete workload plan")
+        return False, "Не удалось удалить план."
     finally:
         session.close()
 
@@ -183,9 +187,13 @@ def _save_assignment(teacher_id, pool_id, lecture, practice, workload_id=None):
         assignment.hours_lecture, assignment.hours_practice, assignment.total_hours = hl, hp, hl + hp
         session.commit()
         return True, "Назначение сохранено; остаток общего плана пересчитан.", assignment.id
-    except Exception as exc:
+    except ValueError as exc:
         session.rollback()
         return False, str(exc), None
+    except Exception:
+        session.rollback()
+        LOG.exception("Could not save assignment")
+        return False, "Не удалось сохранить назначение.", None
     finally:
         session.close()
 
@@ -212,8 +220,9 @@ def delete_workload(workload_id):
         session.delete(workload)
         session.commit()
         return True, "Назначение отменено. Часы возвращены в общий план."
-    except Exception as exc:
+    except Exception:
         session.rollback()
-        return False, str(exc)
+        LOG.exception("Could not delete assignment")
+        return False, "Не удалось отменить назначение."
     finally:
         session.close()

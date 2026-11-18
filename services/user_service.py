@@ -1,16 +1,12 @@
 """
 Сервис управления пользователями системы (Администратор)
 """
-import hashlib
 from typing import List, Optional, Tuple, Dict, Any
 from sqlalchemy.orm import joinedload
 from database.connection import get_session
 from database.models import User, Role
 from services.auth_service import get_current_user
-
-
-def hash_password(password: str) -> str:
-    return hashlib.sha256(password.encode("utf-8")).hexdigest()
+from services.passwords import hash_password
 
 
 def get_users() -> List[User]:
