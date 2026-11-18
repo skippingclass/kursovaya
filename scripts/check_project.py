@@ -26,7 +26,7 @@ if __name__=='__main__':
     log=stream.getvalue(); print(log)
     data=dict(date=datetime.now().isoformat(timespec='seconds'),total=result.testsRun,
               failures=len(result.failures),errors=len(result.errors),tests=result.records)
-    (ROOT/'docs/test_results.json').write_text(json.dumps(data,ensure_ascii=False,indent=2))
+    (ROOT/'docs/test_results.json').write_text(json.dumps(data,ensure_ascii=False,indent=2),encoding='utf-8')
     lines=['# Протокол проверки проекта','',f'Дата: {data["date"]}', '',
            f'Выполнено {result.testsRun} тестов; ошибок {len(result.errors)}; непройденных {len(result.failures)}.',
            '', 'Команда: `python scripts/check_project.py`.', '',
@@ -34,5 +34,5 @@ if __name__=='__main__':
            '| Проверка | Результат |', '|---|---|']
     lines += [f'| `{r["test"]}` | {r["status"]} |' for r in result.records]
     lines += ['', 'Проверены HTTP API, сервисы и интерфейсы Qt в режиме offscreen. Прогон выполнен на Linux и SQLite.', '', '```text',log.strip(),'```','']
-    (ROOT/'docs/TEST_REPORT.md').write_text('\n'.join(lines))
+    (ROOT/'docs/TEST_REPORT.md').write_text('\n'.join(lines),encoding='utf-8')
     sys.exit(not result.wasSuccessful())

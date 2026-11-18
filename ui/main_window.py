@@ -310,8 +310,7 @@ class MainWindow(QMainWindow):
         <p><b>Учебное заведение:</b> {COLLEGE_NAME}</p>
         <p><b>Автор:</b> Евполов Владислав, группа П-24-67Б</p>
         <p><b>GitHub:</b> <a href="https://github.com/skippingclass">skippingclass</a></p>
-        <p><b>Стек технологий:</b> Python 3.12, PyQt6, PostgreSQL / SQLite (SQLAlchemy ORM), Openpyxl, ReportLab.</p>
-        <p>Современный интерфейс в монохромной стилистике.</p>
+        <p><b>Стек технологий:</b> Python, PyQt6, PostgreSQL / SQLite (SQLAlchemy ORM), openpyxl, ReportLab.</p>
         """
         QMessageBox.about(self, "О программе", about_text)
 

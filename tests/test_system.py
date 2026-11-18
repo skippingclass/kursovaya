@@ -4,6 +4,7 @@ import sqlite3
 import tempfile
 import unittest
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import closing
 from pathlib import Path
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
@@ -184,8 +185,8 @@ class SystemTests(unittest.TestCase):
         self.assertTrue(create_backup(file)[0])
         self.assertTrue(restore_backup(file)[0])
         self.assertEqual(get_pools()[0].available_lecture,350)
-        data=json.loads(file.read_text()); data['workloads'][0]['teacher_id']=9999
-        file.write_text(json.dumps(data))
+        data=json.loads(file.read_text(encoding="utf-8")); data['workloads'][0]['teacher_id']=9999
+        file.write_text(json.dumps(data), encoding="utf-8")
         self.assertFalse(restore_backup(file)[0])
         self.assertEqual(len(get_workloads()),1)
         self.assertEqual(get_pools()[0].available_lecture,350)
@@ -193,12 +194,12 @@ class SystemTests(unittest.TestCase):
     def test_legacy_backup_preserved(self):
         p=self.pool(); self.assign(p)
         file=self.root/'backup.json'; create_backup(file)
-        data=json.loads(file.read_text()); data.pop('pools'); data.pop('version')
+        data=json.loads(file.read_text(encoding="utf-8")); data.pop('pools'); data.pop('version')
         for w in data['workloads']:
             w.pop('pool_id'); w.pop('semester')
         for t in data['teachers']:
             for k in ['last_name','first_name','middle_name']: t.pop(k)
-        file.write_text(json.dumps(data))
+        file.write_text(json.dumps(data), encoding="utf-8")
         self.assertTrue(restore_backup(file)[0])
         self.assertEqual(get_workloads()[0].semester,0)
         self.assertEqual(get_pools()[0].available_lecture,0)
@@ -236,7 +237,7 @@ class SystemTests(unittest.TestCase):
         legacy_tables = {"teachers", "teacher_workload", "workload_pools"}
         Base.metadata.create_all(connection._engine, tables=[
             table for table in Base.metadata.sorted_tables if table.name not in legacy_tables])
-        with sqlite3.connect(copy) as db:
+        with closing(sqlite3.connect(copy)) as db:
             db.executescript("""
                 CREATE TABLE teachers (
                     id INTEGER PRIMARY KEY, full_name TEXT NOT NULL, birth_date DATE, phone TEXT,

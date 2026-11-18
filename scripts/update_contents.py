@@ -1,12 +1,11 @@
 """Номера содержания из проверенного PDF, без ручного угадывания страниц."""
 import argparse
 import json
-import re
 from pathlib import Path
 from pypdf import PdfReader
 from docx import Document
 ROOT=Path(__file__).resolve().parents[1]
-DEFAULT=ROOT/'titulni_list/Курсовая_работа_Пояснительная_записка_ИТОГ.docx'
+DEFAULT=ROOT/'docs/Пояснительная_записка.docx'
 
 def normalize(value):return ' '.join(value.split())
 
@@ -30,7 +29,9 @@ def main():
         if p.style.name=='CourseTOC':
             title=p.text.split('\t')[0];p.text=title+'\t'+str(pages[title])
     d.save(args.docx)
-    (ROOT/'tmp/documents/contents_pages.json').write_text(json.dumps(pages,ensure_ascii=False,indent=2))
+    report=ROOT/'tmp/documents/contents_pages.json'
+    report.parent.mkdir(parents=True,exist_ok=True)
+    report.write_text(json.dumps(pages,ensure_ascii=False,indent=2),encoding='utf-8')
     print(json.dumps(pages,ensure_ascii=False))
 
 if __name__=='__main__':main()

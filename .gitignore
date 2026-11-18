@@ -1,55 +1,24 @@
-# Python
+# Python and tooling
 __pycache__/
 *.py[cod]
-*$py.class
-*.so
-.Python
-env/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# Virtual Environments
-venv/
-ENV/
 .venv/
-env/
+venv/
+.pytest_cache/
+*.egg-info/
+/build/
+/dist/
+/tmp/
 
-# IDE & Editors
+# Data, settings and report exports
+/data/
+/settings.json
+*.before-v2.bak
+*.xlsx
+
+# Office and editor files
+~$*
 .idea/
 .vscode/
 *.swp
-*.swo
-*~
 .DS_Store
 Thumbs.db
-
-# Temporary report exports
-*.xlsx
-*.pdf
-!docs/*.pdf
-!*.pdf
-
-
-# Local runtime settings
-settings.json
-
-# Microsoft Office temporary lock files
-~$*
-
-
-# Generated internal verification files
-/tmp/
-*.before-v2.bak

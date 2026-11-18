@@ -11,12 +11,12 @@ from docx.oxml.ns import qn
 from docx.enum.style import WD_STYLE_TYPE
 ROOT=Path(__file__).resolve().parents[1]
 TMP=ROOT/'tmp/documents';REF=ROOT/'docs/templates';DOCS=ROOT/'docs'
-COURSE=ROOT/'titulni_list/Курсовая_работа_Пояснительная_записка_ИТОГ.docx'
-TITLE=ROOT/'titulni_list/Титульный_лист_ИТОГ.docx'
+COURSE=DOCS/'Пояснительная_записка.docx'
+GUIDE_WORD=TMP/'guides'
 AUTHOR='Евполов Владислав';GROUP='П-24-67Б';COLLEGE='Высший колледж «ASTANA POLYTECHNIC»'
 CODE='КП.06130100.П-24-67Б.10.11.2026.ПЗ'
-TESTS=json.loads((DOCS/'test_results.json').read_text())
-SCHEMA=json.loads((DOCS/'schema.json').read_text())
+TESTS=json.loads((DOCS/'test_results.json').read_text(encoding='utf-8'))
+SCHEMA=json.loads((DOCS/'schema.json').read_text(encoding='utf-8'))
 FIGURE=0;TABLE=0
 PAGE_BREAKS=set()
 
@@ -167,23 +167,6 @@ def figure(d,file,caption,width=16):
 def page(d):PAGE_BREAKS.add(id(d))
 
 
-def build_title():
-    d=Document(REF/'title.docx')
-    for p in d.paragraphs:
-        if 'Евполов В.' in p.text:p.text='Выполнил\tЕвполов Владислав\n\tгруппа П-24-67Б'
-        elif 'Руководитель проекта:' in p.text:p.text=p.text.replace('Руководитель проекта:','Руководитель проекта')
-        elif '«АВТОМАТИЗАЦИЯ' in p.text:
-            p.text='АВТОМАТИЗАЦИЯ УЧЕТА ПРЕПОДАВАТЕЛЕЙ\nВЫСШЕГО КОЛЛЕДЖА «ASTANA POLYTECHNIC»'
-        elif p.text.startswith('КП.'):p.text=CODE
-        else:continue
-        for r in p.runs:
-            r.font.name='Times New Roman';r.font.size=Pt(14);r.font.color.rgb=RGBColor(0,0,0)
-            if p.text.startswith(('АВТОМАТИЗАЦИЯ','КП.')):r.bold=True
-    empty=[p for i,p in enumerate(d.paragraphs) if i>20 and not p.text.strip()]
-    for p in empty[:2]:p._element.getparent().remove(p._element)
-    d.core_properties.author=AUTHOR;d.core_properties.last_modified_by=AUTHOR;d.save(TITLE)
-
-
 def front_matter(d):
     def center(text, before=0, style=None):
         paragraph = d.add_paragraph(text, style=style)
@@ -278,6 +261,7 @@ def subsection(d, chapter, index=0, *, new_page=True):
 
 
 def build_course():
+    TMP.mkdir(parents=True, exist_ok=True)
     d = new_course()
     front_matter(d)
     heading(d,'СОДЕРЖАНИЕ',False)
@@ -457,6 +441,7 @@ def build_course():
         'проверить /api/v1/health и /openapi.json по адресу 127.0.0.1:8000',
     ])
     body(d,'Сетевой сервер хранит сессии в памяти одного процесса. После перезапуска пользователь входит заново. Подключение с другого компьютера предусматривает HTTPS, смену учебных паролей и настройку доступа. Для приема работы достаточно локального запуска с демонстрационными данными. Подробности приведены в docs/Защита.md.')
+    body(d,'Готовый архив для Windows x64 содержит Python и библиотеки. run.bat открывает автономное приложение, run-network.bat запускает сервер и сетевой клиент с отдельной демонстрационной базой.')
     heading(d,CHAPTERS[8])
     body(d,f'Проверка выполнена средствами unittest на временных SQLite-базах, в том числе на отдельной модели прежней схемы. Окна Qt запускались в offscreen-режиме. Всего выполнено {TESTS["total"]} проверок. Непройденных {TESTS["failures"]}, ошибок {TESTS["errors"]}. Полный протокол находится в docs/TEST_REPORT.md и docs/test_results.json.')
     body(d,'Проверены корректный и ошибочный ввод, границы ставки, отмена изменений и конкурирующая запись. Представительные тест-кейсы приведены в таблицах 12 и 13. Для каждого случая создаются независимые данные.')
@@ -512,7 +497,7 @@ def build_course():
     ]:body(d,text)
     heading(d,CHAPTERS[11])
     for text in [
-      '1. Методические указания к курсовому проекту по дисциплине «Алгоритмизация и программирование». Высший колледж «ASTANA POLYTECHNIC». Астана, 2026. Файл в корне проекта.',
+      '1. Методические указания к курсовому проекту по дисциплине «Алгоритмизация и программирование». Высший колледж «ASTANA POLYTECHNIC». Астана, 2026. Файл docs/reference/Методические_указания.pdf.',
       '2. Python Software Foundation. unittest. https://docs.python.org/3/library/unittest.html (дата обращения 10.11.2026).',
       '3. SQLAlchemy. Transactions and Connection Management. https://docs.sqlalchemy.org/en/20/orm/session_transaction.html (дата обращения 10.11.2026).',
       '4. The Qt Company. QLineEdit inputMask. https://doc.qt.io/qt-6/qlineedit.html#inputMask-prop (дата обращения 10.11.2026).',
@@ -526,9 +511,9 @@ def build_course():
         body(d,text).alignment = WD_ALIGN_PARAGRAPH.LEFT
     heading(d,CHAPTERS[12])
     for text in [
-      'Приложение А — руководство пользователя. Файлы docs/Руководство_пользователя.docx и .pdf содержат запуск, вход, карточки, общий план, назначения, возврат часов, фильтры, экспорт и примеры экранов.',
-      'Приложение Б — руководство разработчика. Файлы docs/Руководство_разработчика.docx и .pdf описывают окружение, модули, схему, миграцию, настройки, тестирование и изменение проекта.',
-      'Приложение В — требования к ПО. Файлы docs/Требования_к_ПО.docx и .pdf определяют функции, ограничения данных, окружение и критерии приемки.',
+      'Приложение А — руководство пользователя. Файл docs/Руководство_пользователя.pdf содержит запуск, вход, карточки, общий план, назначения, возврат часов, фильтры, экспорт и примеры экранов.',
+      'Приложение Б — руководство разработчика. Файл docs/Руководство_разработчика.pdf описывает окружение, модули, схему, миграцию, настройки, тестирование и изменение проекта.',
+      'Приложение В — требования к ПО. Файл docs/Требования_к_ПО.pdf определяет функции, ограничения данных, окружение и критерии приемки.',
       'Приложение Г — спецификация и проверка. Контракт описан в docs/API.md и docs/openapi.json. Тесты находятся в tests, протокол — в docs/TEST_REPORT.md. Сценарий демонстрации и подтверждения требований приведены в docs/Защита.md.',
       'Автор — Евполов Владислав, группа П-24-67Б, Высший колледж «ASTANA POLYTECHNIC». GitHub https://github.com/skippingclass.'
     ]:body(d,text)
@@ -538,31 +523,32 @@ def build_course():
         ('3','Разработка сервера, форм и интеграция','Раздел 3, работающий клиент и сервер на демонстрационной базе'),
         ('4','Проверки, локальное развертывание и подготовка защиты','Протокол, инструкции, записка, презентация и сценарий демонстрации'),
     ],[2,7.2,7.3])
-    d.save(COURSE);(TMP/'chapter_titles.json').write_text(json.dumps(CHAPTERS,ensure_ascii=False))
+    d.save(COURSE);(TMP/'chapter_titles.json').write_text(json.dumps(CHAPTERS,ensure_ascii=False),encoding='utf-8')
 
 
 def guide(filename,title,sections):
     global FIGURE,TABLE
     FIGURE=TABLE=0;doc=new_guide(title)
-    md=['# '+title,'',COLLEGE,'',f'{AUTHOR}, группа {GROUP}. GitHub skippingclass. Версия 2.1.','']
     for index,(name,paragraphs,pictures,items) in enumerate(sections):
-        heading(doc,name,index>0);md+=['## '+name,'']
-        for text in paragraphs:body(doc,text);md += [text,'']
+        heading(doc,name,index>0)
+        for text in paragraphs:
+            body(doc,text)
         if items:
-            listing(doc,items);md += [f'{i+1}. {t}' for i,t in enumerate(items)]+['']
+            listing(doc,items)
         for file,caption,width in pictures:
-            figure(doc,file,caption,width);md += [f'![{caption}]({file})','']
-    doc.save(DOCS/(filename+'.docx'));(DOCS/(filename+'.md')).write_text('\n'.join(md))
+            figure(doc,file,caption,width)
+    GUIDE_WORD.mkdir(parents=True, exist_ok=True)
+    doc.save(GUIDE_WORD/(filename+'.docx'))
 
 
 def build_guides():
     guide('Руководство_пользователя','Руководство пользователя',[
       ('1 Назначение и запуск',[
        'Программа учитывает преподавателей и распределяет теоретические и практические часы из общего плана. Сначала заполняются справочники и карточки, затем создается план и назначаются часы преподавателям.',
-       'Для запуска нужен Python 3.10 или новее. В каталоге проекта выполните python -m venv .venv, активируйте окружение и выполните python -m pip install -r requirements.txt, затем python run.py. В Windows доступен run.bat. Локальная SQLite не требует отдельного сервера.',
+       'В Windows распакуйте готовый архив и дважды щелкните run.bat. Python входит в архив. При запуске исходников из репозитория установите Python 3.14 и откройте тот же файл. Локальная база SQLite создается автоматически.',
        'При первом запуске создаются демонстрационные записи. Администратор входит как admin / admin123, заведующий кафедрой — operator / operator123, методист — methodist / methodist123. Перед использованием реальных данных администратор должен сменить демонстрационные пароли.',
        'Администратор управляет пользователями и копиями. Заведующий кафедрой изменяет карточки, справочники и нагрузку. Методист просматривает данные и экспортирует отчеты.',
-       'Для запуска сетевого клиента сначала откройте сервер командой python -m uvicorn server.api:app, затем выполните python run_client.py во втором терминале. Сетевой клиент показывает карточки, редактирует план и назначения и выгружает ведомость. Запуск с отдельной базой описан в docs/Защита.md.'
+       'Файл run-network.bat открывает сетевой клиент вместе с локальным сервером. В этом режиме можно просматривать карточки, редактировать план и назначения и выгружать ведомости из отдельной демонстрационной базы.'
       ],[('screenshots/login_window.png','Окно входа',6)],[]),
       ('2 Преподаватели',[
        'На вкладке «Преподаватели» нажмите «Добавить преподавателя». Заполните фамилию и имя раздельно, отчество при наличии. Выберите кафедру, категорию, стаж и статус. Контакты и дата рождения необязательны, но заполненные значения должны быть корректными.',
@@ -623,8 +609,9 @@ def build_guides():
       ('5 Проверки и документы',[
        f'Команда python scripts/check_project.py выполняет {TESTS["total"]} проверок и обновляет docs/TEST_REPORT.md и docs/test_results.json. Используются временные SQLite-базы, отдельная модель старой схемы, HTTP API и Qt offscreen. PostgreSQL и другие ОС требуют отдельного прогона.',
        'Проверяются ФИО, контакты, сортировка, кириллица, порог 720, независимые остатки, редактирование, перенос, конкурирующая запись, копии обоих форматов, откат ошибки восстановления, миграция и экспорт.',
-       'Диаграммы создает scripts/build_diagrams.py, снимки на одноразовой базе — scripts/capture_screenshots.py. До сборки Word обновите схему и протокол. Сборщик scripts/build_documents.py использует сохраненные исходные документы docs/templates/course.docx и title.docx. Эти шаблоны не изменяются при сборке.',
-       'После сборки преобразуйте DOCX в PDF через LibreOffice. Для записки обновите страницы содержания скриптом scripts/update_contents.py по первому PDF, затем преобразуйте документ повторно. Итоговые PDF руководств помещаются в docs, записки — в titulni_list.',
+       'Диаграммы создает scripts/build_diagrams.py, снимки на одноразовой базе — scripts/capture_screenshots.py. До сборки Word обновите схему и протокол. Скрипт scripts/build_documents.py использует шаблон docs/templates/course.docx. Промежуточные Word-файлы руководств создаются в tmp/documents/guides.',
+       'После сборки преобразуйте DOCX в PDF через LibreOffice. Для записки обновите страницы содержания скриптом scripts/update_contents.py по первому PDF и преобразуйте документ повторно. Итоговые материалы помещаются в docs.',
+       'Для упаковки Windows x64 выполните python scripts/package_windows.py. Архив проверяет контрольную сумму Python для встраивания и включает библиотеки и материалы для защиты. ZIP сохраняется в dist.',
        'assets/fonts/DejaVuSans.ttf обеспечивает кириллицу PDF. Лицензия находится в assets/fonts/LICENSE.txt. Сохраняйте оба файла при упаковке приложения.'
       ],[],[]),
       ('6 Изменение программы',[

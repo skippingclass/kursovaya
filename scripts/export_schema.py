@@ -9,4 +9,4 @@ schema=[]
 for table in Base.metadata.sorted_tables:
     schema.append({'name':table.name,'columns':[{'name':c.name,'type':str(c.type),'nullable':c.nullable,
         'primary_key':c.primary_key,'unique':bool(c.unique),'foreign_key':','.join(f.target_fullname for f in c.foreign_keys)} for c in table.columns]})
-(ROOT/'docs/schema.json').write_text(json.dumps(schema,ensure_ascii=False,indent=2))
+(ROOT/'docs/schema.json').write_text(json.dumps(schema,ensure_ascii=False,indent=2),encoding='utf-8')

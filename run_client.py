@@ -9,10 +9,10 @@ from ui.network_window import NetworkLogin, NetworkWindow
 from ui.styles import APP_STYLE
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(description="Сетевой клиент учета преподавателей")
     parser.add_argument("--url", default="http://127.0.0.1:8000")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     try:
         client = ApiClient(args.url)
     except ValueError as exc:

@@ -1,0 +1,2 @@
+# Keep CRLF in checkout files and source ZIPs.
+*.bat -text whitespace=cr-at-eol
