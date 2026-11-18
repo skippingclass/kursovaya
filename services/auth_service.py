@@ -1,6 +1,6 @@
 """
 Сервис аутентификации и авторизации (AuthModule)
-Реализует блок-схему алгоритма авторизации (Раздел 6.3)
+Учетные записи используются автономным приложением и HTTP API.
 """
 from typing import Optional, Dict, Any, Tuple
 from database.connection import get_session
@@ -16,6 +16,10 @@ def user_info(user):
             "role_name": user.role.name if user.role else "Неизвестно"}
 
 
+def session_key(user):
+    return user.username, user.password_hash
+
+
 def verify_credentials(username, password):
     with get_session() as session:
         user = session.query(User).filter_by(username=username.strip()).first()
@@ -27,8 +31,10 @@ def verify_credentials(username, password):
                 {User.password_hash: hash_password(password)}, synchronize_session=False)
             session.commit()
             if not updated:
-                return None
-        return user_info(user)
+                user = session.query(User).filter_by(username=username.strip()).first()
+                if user is None or not verify_password(password, user.password_hash):
+                    return None
+        return user_info(user), session_key(user)
 
 
 def authenticate(username: str, password: str) -> Tuple[bool, Optional[str], Optional[Dict[str, Any]]]:
@@ -39,10 +45,10 @@ def authenticate(username: str, password: str) -> Tuple[bool, Optional[str], Opt
         return False, "Логин и пароль обязательны для заполнения!", None
 
     try:
-        user = verify_credentials(username, password)
-        if user is None:
+        credentials = verify_credentials(username, password)
+        if credentials is None:
             return False, "Неверное имя пользователя или пароль!", None
-        _current_user = user
+        _current_user, _ = credentials
         return True, None, _current_user
 
     except Exception as e:

@@ -75,8 +75,17 @@ class UITests(unittest.TestCase):
 
     def test_methodist_buttons_hidden(self):
         authenticate("methodist","methodist123")
-        from ui.workload_tab import WorkloadTab
-        tab=WorkloadTab(); self.widgets.append(tab)
+        from ui.login_window import LoginWindow
+        from ui.main_window import MainWindow
+        from unittest.mock import patch
+        window = MainWindow()
+        login = LoginWindow()
+        self.widgets.extend((window, login))
+        self.assertFalse(window.db_menu.isEnabled())
+        with patch("ui.login_window.DBSettingsDialog") as settings:
+            login.open_db_settings()
+            settings.assert_called_once_with(login, allow_backup=False)
+        tab = window.tab_workload
         self.assertTrue(tab.btn_pool.isHidden())
         self.assertTrue(tab.btn_edit.isHidden())
 

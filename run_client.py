@@ -5,6 +5,7 @@ import sys
 from PyQt6.QtWidgets import QApplication, QMessageBox
 
 from ui.api_client import ApiClient, ApiError
+from ui.i18n import install_russian_translations
 from ui.network_window import NetworkLogin, NetworkWindow
 from ui.styles import APP_STYLE
 
@@ -18,6 +19,7 @@ def main(argv=None):
     except ValueError as exc:
         parser.error(str(exc))
     app = QApplication(sys.argv[:1])
+    install_russian_translations(app)
     app.setStyleSheet(APP_STYLE)
     dialog = NetworkLogin(client)
     while dialog.exec():

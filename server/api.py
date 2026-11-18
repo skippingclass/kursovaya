@@ -9,7 +9,7 @@ from threading import Lock
 from time import monotonic
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query, Request, Response
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Path as PathParameter, Query, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -22,16 +22,24 @@ from services import department_service as departments
 from services import report_service as reports
 from services import teacher_service as teachers
 from services import workload_service as workload
-from services.auth_service import user_info, verify_credentials
+from services.auth_service import session_key, user_info, verify_credentials
 
 LOG = logging.getLogger("uvicorn.error")
 SESSION_SECONDS = 3600
 AUTH = HTTPBearer(auto_error=False)
-AUTH_ERRORS = {401: {"description": "Требуется действующая сессия"}}
-WRITE_ERRORS = {**AUTH_ERRORS, 403: {"description": "Недостаточно прав"},
-                409: {"description": "Операция отклонена по правилам учета"}}
 EXPORT_TYPES = {"xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 "pdf": "application/pdf"}
+
+
+class ApiProblem(BaseModel):
+    detail: str
+
+
+AUTH_ERRORS = {401: {"model": ApiProblem, "description": "Требуется действующая сессия"}}
+VALIDATION_ERRORS = {422: {"model": ApiProblem, "description": "Некорректные поля запроса"}}
+WRITE_ERRORS = {**VALIDATION_ERRORS,
+                403: {"model": ApiProblem, "description": "Недостаточно прав"},
+                409: {"model": ApiProblem, "description": "Операция отклонена по правилам учета"}}
 
 
 class Input(BaseModel):
@@ -77,7 +85,7 @@ class TeacherInput(Input):
     last_name: str = Field(min_length=1, max_length=100)
     first_name: str = Field(min_length=1, max_length=100)
     middle_name: str = Field(default="", max_length=100)
-    department_id: int = Field(gt=0)
+    department_id: int = Field(gt=0, strict=True)
     qualification: str = Field(default="", max_length=100)
     experience: int = Field(default=0, ge=0, le=70)
     phone: str = Field(default="", max_length=50)
@@ -109,9 +117,9 @@ class TeacherCard(TeacherRow):
 
 class PoolInput(Input):
     academic_year: str = Field(pattern=r"^\d{4}-\d{4}$")
-    semester: Literal[1, 2]
+    semester: int = Field(ge=1, le=2, strict=True)
     group_name: str = Field(min_length=1, max_length=100)
-    discipline_id: int = Field(gt=0)
+    discipline_id: int = Field(gt=0, strict=True)
     hours_lecture: int = Field(ge=0, le=1000000, strict=True)
     hours_practice: int = Field(ge=0, le=1000000, strict=True)
     weeks: int = Field(default=18, ge=1, le=52, strict=True)
@@ -132,8 +140,8 @@ class PoolRow(BaseModel):
 
 
 class AssignmentInput(Input):
-    teacher_id: int = Field(gt=0)
-    pool_id: int = Field(gt=0)
+    teacher_id: int = Field(gt=0, strict=True)
+    pool_id: int = Field(gt=0, strict=True)
     hours_lecture: int = Field(ge=0, le=1000000, strict=True)
     hours_practice: int = Field(ge=0, le=1000000, strict=True)
 
@@ -200,12 +208,15 @@ def active_session(request: Request, auth: Annotated[HTTPAuthorizationCredential
     if record:
         with get_session() as session:
             user = session.get(User, record[0])
-            if user and user.role and user.role.name in ROLES_LIST:
+            if user and session_key(user) == record[2] and user.role and user.role.name in ROLES_LIST:
                 return Identity(**user_info(user))
+        with request.app.state.session_lock:
+            request.app.state.sessions.pop(token, None)
     raise HTTPException(401, "Войдите в систему повторно.", headers={"WWW-Authenticate": "Bearer"})
 
 
 Current = Annotated[Identity, Depends(active_session)]
+Identifier = Annotated[int, PathParameter(gt=0)]
 
 
 def editor(user: Current):
@@ -231,18 +242,19 @@ def health():
     return {"status": "ok"}
 
 
-@public.post("/auth/login", responses=AUTH_ERRORS)
+@public.post("/auth/login", responses={**AUTH_ERRORS, **VALIDATION_ERRORS})
 def login(data: Credentials, request: Request) -> LoginResult:
-    info = verify_credentials(data.username, data.password)
-    if not info or info["role_name"] not in ROLES_LIST:
+    credentials = verify_credentials(data.username, data.password)
+    if credentials is None or credentials[0]["role_name"] not in ROLES_LIST:
         raise HTTPException(401, "Неверное имя пользователя или пароль.")
+    info, key = credentials
     token = token_urlsafe(32)
     with request.app.state.session_lock:
         now = monotonic()
         sessions = request.app.state.sessions
         for key in [key for key, value in sessions.items() if value[1] <= now]:
             del sessions[key]
-        sessions[token] = (info["id"], now + SESSION_SECONDS)
+        sessions[token] = (info["id"], now + SESSION_SECONDS, key)
     return LoginResult(access_token=token, user=Identity(**info))
 
 
@@ -269,8 +281,9 @@ def list_years(user: Current) -> list[str]:
     return workload.get_academic_years()
 
 
-@protected.get("/teachers")
-def list_teachers(user: Current, search: str | None = None, department_id: int | None = None,
+@protected.get("/teachers", responses=VALIDATION_ERRORS)
+def list_teachers(user: Current, search: str | None = None,
+                  department_id: Annotated[int | None, Query(gt=0)] = None,
                   academic_year: str | None = None, rate: Literal["below", "equal", "above"] | None = None,
                   sort: Literal["full_name", "experience", "department", "total_hours"] = "full_name",
                   descending: bool = False) -> list[TeacherRow]:
@@ -288,8 +301,10 @@ def create_teacher(data: TeacherInput, user: Editor) -> Change:
                   teachers.add_teacher(data.model_dump(exclude={"allow_similar"}), data.allow_similar))
 
 
-@protected.get("/teachers/{teacher_id}", responses={404: {"description": "Карточка не найдена"}})
-def get_teacher(teacher_id: int, user: Current) -> TeacherCard:
+@protected.get("/teachers/{teacher_id}", responses={
+    **VALIDATION_ERRORS, 404: {"model": ApiProblem, "description": "Карточка не найдена"},
+})
+def get_teacher(teacher_id: Identifier, user: Current) -> TeacherCard:
     row = teachers.get_teacher_by_id(teacher_id)
     if row is None:
         raise HTTPException(404, "Преподаватель не найден.")
@@ -301,17 +316,17 @@ def get_teacher(teacher_id: int, user: Current) -> TeacherCard:
 
 
 @protected.put("/teachers/{teacher_id}", responses=WRITE_ERRORS)
-def update_teacher(teacher_id: int, data: TeacherInput, user: Editor) -> Change:
+def update_teacher(teacher_id: Identifier, data: TeacherInput, user: Editor) -> Change:
     values = data.model_dump(exclude={"allow_similar"})
     return change(user, "teacher.update", teachers.update_teacher(teacher_id, values, data.allow_similar), teacher_id)
 
 
 @protected.delete("/teachers/{teacher_id}", responses=WRITE_ERRORS)
-def delete_teacher(teacher_id: int, user: Editor) -> Change:
+def delete_teacher(teacher_id: Identifier, user: Editor) -> Change:
     return change(user, "teacher.delete", teachers.delete_teacher(teacher_id), teacher_id)
 
 
-@protected.get("/pools")
+@protected.get("/pools", responses=VALIDATION_ERRORS)
 def list_pools(user: Current, filters: Annotated[Period, Query()]) -> list[PoolRow]:
     return [PoolRow(id=row.id, academic_year=row.academic_year, semester=row.semester,
                     group_name=row.group_name, discipline_id=row.discipline_id, discipline=row.discipline.name,
@@ -326,16 +341,16 @@ def create_pool(data: PoolInput, user: Editor) -> Change:
 
 
 @protected.put("/pools/{pool_id}", responses=WRITE_ERRORS)
-def update_pool(pool_id: int, data: PoolInput, user: Editor) -> Change:
+def update_pool(pool_id: Identifier, data: PoolInput, user: Editor) -> Change:
     return change(user, "pool.update", workload.save_pool(pool_id=pool_id, **data.model_dump()))
 
 
 @protected.delete("/pools/{pool_id}", responses=WRITE_ERRORS)
-def delete_pool(pool_id: int, user: Editor) -> Change:
+def delete_pool(pool_id: Identifier, user: Editor) -> Change:
     return change(user, "pool.delete", workload.delete_pool(pool_id), pool_id)
 
 
-@protected.get("/assignments")
+@protected.get("/assignments", responses=VALIDATION_ERRORS)
 def list_assignments(user: Current, filters: Annotated[ReportFilters, Query()]) -> list[AssignmentRow]:
     return [AssignmentRow(id=row.id, teacher_id=row.teacher_id, teacher=row.teacher.full_name,
                           pool_id=row.pool_id, academic_year=row.academic_year, semester=row.semester,
@@ -352,19 +367,21 @@ def create_assignment(data: AssignmentInput, user: Editor) -> Change:
 
 
 @protected.put("/assignments/{assignment_id}", responses=WRITE_ERRORS)
-def update_assignment(assignment_id: int, data: AssignmentInput, user: Editor) -> Change:
+def update_assignment(assignment_id: Identifier, data: AssignmentInput, user: Editor) -> Change:
     result = workload.update_workload(assignment_id, None, discipline_id=None, **data.model_dump())
     return change(user, "assignment.update", result, assignment_id)
 
 
 @protected.delete("/assignments/{assignment_id}", responses=WRITE_ERRORS)
-def delete_assignment(assignment_id: int, user: Editor) -> Change:
+def delete_assignment(assignment_id: Identifier, user: Editor) -> Change:
     return change(user, "assignment.delete", workload.delete_workload(assignment_id), assignment_id)
 
 
 @protected.get("/reports/workload/{format}", response_class=Response,
-               responses={200: {"content": {media: {"schema": {"type": "string", "format": "binary"}}
-                                            for media in EXPORT_TYPES.values()}}})
+               responses={**VALIDATION_ERRORS,
+                          200: {"content": {media: {"schema": {"type": "string", "format": "binary"}}
+                                            for media in EXPORT_TYPES.values()}},
+                          500: {"model": ApiProblem, "description": "Не удалось сформировать ведомость"}})
 def download_report(format: Literal["xlsx", "pdf"], user: Current, filters: Annotated[ReportFilters, Query()]):
     export = {"xlsx": reports.export_workload_to_excel, "pdf": reports.export_workload_to_pdf}[format]
     with TemporaryDirectory(prefix="college-report-") as folder:

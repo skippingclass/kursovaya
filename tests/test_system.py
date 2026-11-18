@@ -6,6 +6,8 @@ import unittest
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
 from pathlib import Path
+from threading import Barrier
+from unittest.mock import patch
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 import database.connection as connection
@@ -59,6 +61,15 @@ class SystemTests(unittest.TestCase):
     def test_normalized_exact_duplicate(self):
         ok, _, _ = add_teacher(dict(full_name="  ЕВПОЛОВ   Владислав Игоревич ", department_id=1))
         self.assertFalse(ok)
+        first_write = Barrier(2)
+        data = dict(full_name="Чумаков Савелий Романович", department_id=1)
+
+        def create(_):
+            first_write.wait(timeout=5)
+            return add_teacher(data)[0]
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            self.assertEqual(sum(executor.map(create, range(2))), 1)
 
     def test_typo_requires_explicit_override(self):
         data = dict(full_name="Евпалов Владислав Игоревич", department_id=1)
@@ -183,13 +194,29 @@ class SystemTests(unittest.TestCase):
         p = self.pool(); self.assign(p)
         file=self.root/'backup.json'
         self.assertTrue(create_backup(file)[0])
+        original = file.read_bytes()
+
+        def fail_write(data, stream, **options):
+            stream.write("{")
+            raise OSError("Не удалось записать файл")
+
+        with patch("database.backup.json.dump", side_effect=fail_write):
+            self.assertFalse(create_backup(file)[0])
+        self.assertEqual(file.read_bytes(), original)
         self.assertTrue(restore_backup(file)[0])
         self.assertEqual(get_pools()[0].available_lecture,350)
-        data=json.loads(file.read_text(encoding="utf-8")); data['workloads'][0]['teacher_id']=9999
-        file.write_text(json.dumps(data), encoding="utf-8")
-        self.assertFalse(restore_backup(file)[0])
-        self.assertEqual(len(get_workloads()),1)
-        self.assertEqual(get_pools()[0].available_lecture,350)
+        broken_backups = (
+            ("workloads", "teacher_id"), ("teachers", "department_id"),
+            ("disciplines", "department_id"), ("pools", "discipline_id"),
+        )
+        for table, column in broken_backups:
+            with self.subTest(table=table, column=column):
+                data = json.loads(original)
+                data[table][0][column] = 9999
+                file.write_text(json.dumps(data), encoding="utf-8")
+                self.assertFalse(restore_backup(file)[0])
+                self.assertEqual(len(get_workloads()), 1)
+                self.assertEqual(get_pools()[0].available_lecture, 350)
 
     def test_legacy_backup_preserved(self):
         p=self.pool(); self.assign(p)

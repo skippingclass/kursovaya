@@ -47,14 +47,21 @@
             }
           },
           "401": {
-            "description": "Требуется действующая сессия"
-          },
-          "422": {
-            "description": "Validation Error",
+            "description": "Требуется действующая сессия",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Некорректные поля запроса",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
                 }
               }
             }
@@ -71,7 +78,14 @@
             "description": "Successful Response"
           },
           "401": {
-            "description": "Требуется действующая сессия"
+            "description": "Требуется действующая сессия",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -101,7 +115,14 @@
             }
           },
           "401": {
-            "description": "Требуется действующая сессия"
+            "description": "Требуется действующая сессия",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -131,7 +152,14 @@
             }
           },
           "401": {
-            "description": "Требуется действующая сессия"
+            "description": "Требуется действующая сессия",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -161,7 +189,14 @@
             }
           },
           "401": {
-            "description": "Требуется действующая сессия"
+            "description": "Требуется действующая сессия",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -204,7 +239,8 @@
             "schema": {
               "anyOf": [
                 {
-                  "type": "integer"
+                  "type": "integer",
+                  "exclusiveMinimum": 0
                 },
                 {
                   "type": "null"
@@ -293,14 +329,21 @@
             }
           },
           "401": {
-            "description": "Требуется действующая сессия"
-          },
-          "422": {
-            "description": "Validation Error",
+            "description": "Требуется действующая сессия",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Некорректные поля запроса",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
                 }
               }
             }
@@ -337,20 +380,41 @@
             }
           },
           "401": {
-            "description": "Требуется действующая сессия"
-          },
-          "403": {
-            "description": "Недостаточно прав"
-          },
-          "409": {
-            "description": "Операция отклонена по правилам учета"
-          },
-          "422": {
-            "description": "Validation Error",
+            "description": "Требуется действующая сессия",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Некорректные поля запроса",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Недостаточно прав",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Операция отклонена по правилам учета",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
                 }
               }
             }
@@ -374,6 +438,7 @@
             "required": true,
             "schema": {
               "type": "integer",
+              "exclusiveMinimum": 0,
               "title": "Teacher Id"
             }
           }
@@ -390,17 +455,31 @@
             }
           },
           "401": {
-            "description": "Требуется действующая сессия"
-          },
-          "404": {
-            "description": "Карточка не найдена"
-          },
-          "422": {
-            "description": "Validation Error",
+            "description": "Требуется действующая сессия",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Некорректные поля запроса",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Карточка не найдена",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
                 }
               }
             }
@@ -422,6 +501,7 @@
             "required": true,
             "schema": {
               "type": "integer",
+              "exclusiveMinimum": 0,
               "title": "Teacher Id"
             }
           }
@@ -448,20 +528,41 @@
             }
           },
           "401": {
-            "description": "Требуется действующая сессия"
-          },
-          "403": {
-            "description": "Недостаточно прав"
-          },
-          "409": {
-            "description": "Операция отклонена по правилам учета"
-          },
-          "422": {
-            "description": "Validation Error",
+            "description": "Требуется действующая сессия",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Некорректные поля запроса",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Недостаточно прав",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Операция отклонена по правилам учета",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
                 }
               }
             }
@@ -483,6 +584,7 @@
             "required": true,
             "schema": {
               "type": "integer",
+              "exclusiveMinimum": 0,
               "title": "Teacher Id"
             }
           }
@@ -499,20 +601,41 @@
             }
           },
           "401": {
-            "description": "Требуется действующая сессия"
-          },
-          "403": {
-            "description": "Недостаточно прав"
-          },
-          "409": {
-            "description": "Операция отклонена по правилам учета"
-          },
-          "422": {
-            "description": "Validation Error",
+            "description": "Требуется действующая сессия",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Некорректные поля запроса",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Недостаточно прав",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Операция отклонена по правилам учета",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
                 }
               }
             }
@@ -601,14 +724,21 @@
             }
           },
           "401": {
-            "description": "Требуется действующая сессия"
-          },
-          "422": {
-            "description": "Validation Error",
+            "description": "Требуется действующая сессия",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Некорректные поля запроса",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
                 }
               }
             }
@@ -645,20 +775,41 @@
             }
           },
           "401": {
-            "description": "Требуется действующая сессия"
-          },
-          "403": {
-            "description": "Недостаточно прав"
-          },
-          "409": {
-            "description": "Операция отклонена по правилам учета"
-          },
-          "422": {
-            "description": "Validation Error",
+            "description": "Требуется действующая сессия",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Некорректные поля запроса",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Недостаточно прав",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Операция отклонена по правилам учета",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
                 }
               }
             }
@@ -682,6 +833,7 @@
             "required": true,
             "schema": {
               "type": "integer",
+              "exclusiveMinimum": 0,
               "title": "Pool Id"
             }
           }
@@ -708,20 +860,41 @@
             }
           },
           "401": {
-            "description": "Требуется действующая сессия"
-          },
-          "403": {
-            "description": "Недостаточно прав"
-          },
-          "409": {
-            "description": "Операция отклонена по правилам учета"
-          },
-          "422": {
-            "description": "Validation Error",
+            "description": "Требуется действующая сессия",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Некорректные поля запроса",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Недостаточно прав",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Операция отклонена по правилам учета",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
                 }
               }
             }
@@ -743,6 +916,7 @@
             "required": true,
             "schema": {
               "type": "integer",
+              "exclusiveMinimum": 0,
               "title": "Pool Id"
             }
           }
@@ -759,20 +933,41 @@
             }
           },
           "401": {
-            "description": "Требуется действующая сессия"
-          },
-          "403": {
-            "description": "Недостаточно прав"
-          },
-          "409": {
-            "description": "Операция отклонена по правилам учета"
-          },
-          "422": {
-            "description": "Validation Error",
+            "description": "Требуется действующая сессия",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Некорректные поля запроса",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Недостаточно прав",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Операция отклонена по правилам учета",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
                 }
               }
             }
@@ -878,14 +1073,21 @@
             }
           },
           "401": {
-            "description": "Требуется действующая сессия"
-          },
-          "422": {
-            "description": "Validation Error",
+            "description": "Требуется действующая сессия",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Некорректные поля запроса",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
                 }
               }
             }
@@ -922,20 +1124,41 @@
             }
           },
           "401": {
-            "description": "Требуется действующая сессия"
-          },
-          "403": {
-            "description": "Недостаточно прав"
-          },
-          "409": {
-            "description": "Операция отклонена по правилам учета"
-          },
-          "422": {
-            "description": "Validation Error",
+            "description": "Требуется действующая сессия",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Некорректные поля запроса",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Недостаточно прав",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Операция отклонена по правилам учета",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
                 }
               }
             }
@@ -959,6 +1182,7 @@
             "required": true,
             "schema": {
               "type": "integer",
+              "exclusiveMinimum": 0,
               "title": "Assignment Id"
             }
           }
@@ -985,20 +1209,41 @@
             }
           },
           "401": {
-            "description": "Требуется действующая сессия"
-          },
-          "403": {
-            "description": "Недостаточно прав"
-          },
-          "409": {
-            "description": "Операция отклонена по правилам учета"
-          },
-          "422": {
-            "description": "Validation Error",
+            "description": "Требуется действующая сессия",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Некорректные поля запроса",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Недостаточно прав",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Операция отклонена по правилам учета",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
                 }
               }
             }
@@ -1020,6 +1265,7 @@
             "required": true,
             "schema": {
               "type": "integer",
+              "exclusiveMinimum": 0,
               "title": "Assignment Id"
             }
           }
@@ -1036,20 +1282,41 @@
             }
           },
           "401": {
-            "description": "Требуется действующая сессия"
-          },
-          "403": {
-            "description": "Недостаточно прав"
-          },
-          "409": {
-            "description": "Операция отклонена по правилам учета"
-          },
-          "422": {
-            "description": "Validation Error",
+            "description": "Требуется действующая сессия",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Некорректные поля запроса",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Недостаточно прав",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Операция отклонена по правилам учета",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
                 }
               }
             }
@@ -1171,14 +1438,31 @@
             }
           },
           "401": {
-            "description": "Требуется действующая сессия"
-          },
-          "422": {
-            "description": "Validation Error",
+            "description": "Требуется действующая сессия",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Некорректные поля запроса",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Не удалось сформировать ведомость",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
                 }
               }
             }
@@ -1189,6 +1473,19 @@
   },
   "components": {
     "schemas": {
+      "ApiProblem": {
+        "properties": {
+          "detail": {
+            "type": "string",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "required": [
+          "detail"
+        ],
+        "title": "ApiProblem"
+      },
       "AssignmentInput": {
         "properties": {
           "teacher_id": {
@@ -1393,19 +1690,6 @@
         ],
         "title": "Discipline"
       },
-      "HTTPValidationError": {
-        "properties": {
-          "detail": {
-            "items": {
-              "$ref": "#/components/schemas/ValidationError"
-            },
-            "type": "array",
-            "title": "Detail"
-          }
-        },
-        "type": "object",
-        "title": "HTTPValidationError"
-      },
       "Identity": {
         "properties": {
           "id": {
@@ -1471,10 +1755,8 @@
           },
           "semester": {
             "type": "integer",
-            "enum": [
-              1,
-              2
-            ],
+            "maximum": 2.0,
+            "minimum": 1.0,
             "title": "Semester"
           },
           "group_name": {
@@ -1819,46 +2101,6 @@
           "hours"
         ],
         "title": "TeacherRow"
-      },
-      "ValidationError": {
-        "properties": {
-          "loc": {
-            "items": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "integer"
-                }
-              ]
-            },
-            "type": "array",
-            "title": "Location"
-          },
-          "msg": {
-            "type": "string",
-            "title": "Message"
-          },
-          "type": {
-            "type": "string",
-            "title": "Error Type"
-          },
-          "input": {
-            "title": "Input"
-          },
-          "ctx": {
-            "type": "object",
-            "title": "Context"
-          }
-        },
-        "type": "object",
-        "required": [
-          "loc",
-          "msg",
-          "type"
-        ],
-        "title": "ValidationError"
       }
     },
     "securitySchemes": {

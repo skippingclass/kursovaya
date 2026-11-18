@@ -167,5 +167,5 @@ class LoginWindow(QDialog):
             self.password_input.setFocus()
 
     def open_db_settings(self):
-        dialog = DBSettingsDialog(self)
+        dialog = DBSettingsDialog(self, allow_backup=False)
         dialog.exec()

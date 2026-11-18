@@ -110,9 +110,12 @@ class TeacherCardDialog(QDialog):
         self.combo_year.currentIndexChanged.connect(self.load_data)
         self.combo_semester.currentIndexChanged.connect(self.load_data)
         self.table_wl = QTableWidget()
-        self.table_wl.setColumnCount(6)
-        self.table_wl.setHorizontalHeaderLabels(["Учебный год", "Код", "Дисциплина", "Лекции (ч)", "Практики (ч)", "Всего (ч)"])
-        self.table_wl.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        self.table_wl.setColumnCount(8)
+        self.table_wl.setHorizontalHeaderLabels([
+            "Учебный год", "Семестр", "Группа", "Дисциплина",
+            "Теория", "Практика", "Всего", "Часов в неделю",
+        ])
+        self.table_wl.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
         self.table_wl.setAlternatingRowColors(True)
         self.table_wl.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table_wl.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)

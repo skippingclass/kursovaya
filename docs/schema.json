@@ -8,7 +8,8 @@
         "nullable": false,
         "primary_key": true,
         "unique": false,
-        "foreign_key": ""
+        "foreign_key": "",
+        "default": null
       },
       {
         "name": "name",
@@ -16,7 +17,8 @@
         "nullable": false,
         "primary_key": false,
         "unique": false,
-        "foreign_key": ""
+        "foreign_key": "",
+        "default": null
       },
       {
         "name": "head_name",
@@ -24,9 +26,12 @@
         "nullable": true,
         "primary_key": false,
         "unique": false,
-        "foreign_key": ""
+        "foreign_key": "",
+        "default": null
       }
-    ]
+    ],
+    "unique_constraints": [],
+    "check_constraints": []
   },
   {
     "name": "roles",
@@ -37,7 +42,8 @@
         "nullable": false,
         "primary_key": true,
         "unique": false,
-        "foreign_key": ""
+        "foreign_key": "",
+        "default": null
       },
       {
         "name": "name",
@@ -45,9 +51,16 @@
         "nullable": false,
         "primary_key": false,
         "unique": true,
-        "foreign_key": ""
+        "foreign_key": "",
+        "default": null
       }
-    ]
+    ],
+    "unique_constraints": [
+      [
+        "name"
+      ]
+    ],
+    "check_constraints": []
   },
   {
     "name": "disciplines",
@@ -58,7 +71,8 @@
         "nullable": false,
         "primary_key": true,
         "unique": false,
-        "foreign_key": ""
+        "foreign_key": "",
+        "default": null
       },
       {
         "name": "code",
@@ -66,7 +80,8 @@
         "nullable": false,
         "primary_key": false,
         "unique": false,
-        "foreign_key": ""
+        "foreign_key": "",
+        "default": null
       },
       {
         "name": "name",
@@ -74,7 +89,8 @@
         "nullable": false,
         "primary_key": false,
         "unique": false,
-        "foreign_key": ""
+        "foreign_key": "",
+        "default": null
       },
       {
         "name": "department_id",
@@ -82,9 +98,12 @@
         "nullable": false,
         "primary_key": false,
         "unique": false,
-        "foreign_key": "departments.id"
+        "foreign_key": "departments.id",
+        "default": null
       }
-    ]
+    ],
+    "unique_constraints": [],
+    "check_constraints": []
   },
   {
     "name": "teachers",
@@ -95,7 +114,8 @@
         "nullable": false,
         "primary_key": true,
         "unique": false,
-        "foreign_key": ""
+        "foreign_key": "",
+        "default": null
       },
       {
         "name": "full_name",
@@ -103,7 +123,8 @@
         "nullable": false,
         "primary_key": false,
         "unique": false,
-        "foreign_key": ""
+        "foreign_key": "",
+        "default": null
       },
       {
         "name": "last_name",
@@ -111,7 +132,8 @@
         "nullable": false,
         "primary_key": false,
         "unique": false,
-        "foreign_key": ""
+        "foreign_key": "",
+        "default": ""
       },
       {
         "name": "first_name",
@@ -119,7 +141,8 @@
         "nullable": false,
         "primary_key": false,
         "unique": false,
-        "foreign_key": ""
+        "foreign_key": "",
+        "default": ""
       },
       {
         "name": "middle_name",
@@ -127,7 +150,8 @@
         "nullable": false,
         "primary_key": false,
         "unique": false,
-        "foreign_key": ""
+        "foreign_key": "",
+        "default": ""
       },
       {
         "name": "birth_date",
@@ -135,7 +159,8 @@
         "nullable": true,
         "primary_key": false,
         "unique": false,
-        "foreign_key": ""
+        "foreign_key": "",
+        "default": null
       },
       {
         "name": "phone",
@@ -143,7 +168,8 @@
         "nullable": true,
         "primary_key": false,
         "unique": false,
-        "foreign_key": ""
+        "foreign_key": "",
+        "default": null
       },
       {
         "name": "email",
@@ -151,7 +177,8 @@
         "nullable": true,
         "primary_key": false,
         "unique": false,
-        "foreign_key": ""
+        "foreign_key": "",
+        "default": null
       },
       {
         "name": "qualification",
@@ -159,7 +186,8 @@
         "nullable": true,
         "primary_key": false,
         "unique": false,
-        "foreign_key": ""
+        "foreign_key": "",
+        "default": null
       },
       {
         "name": "experience",
@@ -167,7 +195,8 @@
         "nullable": true,
         "primary_key": false,
         "unique": false,
-        "foreign_key": ""
+        "foreign_key": "",
+        "default": 0
       },
       {
         "name": "department_id",
@@ -175,7 +204,8 @@
         "nullable": false,
         "primary_key": false,
         "unique": false,
-        "foreign_key": "departments.id"
+        "foreign_key": "departments.id",
+        "default": null
       },
       {
         "name": "status",
@@ -183,7 +213,8 @@
         "nullable": true,
         "primary_key": false,
         "unique": false,
-        "foreign_key": ""
+        "foreign_key": "",
+        "default": "работает"
       },
       {
         "name": "photo_path",
@@ -191,9 +222,12 @@
         "nullable": true,
         "primary_key": false,
         "unique": false,
-        "foreign_key": ""
+        "foreign_key": "",
+        "default": null
       }
-    ]
+    ],
+    "unique_constraints": [],
+    "check_constraints": []
   },
   {
     "name": "users",
@@ -204,7 +238,8 @@
         "nullable": false,
         "primary_key": true,
         "unique": false,
-        "foreign_key": ""
+        "foreign_key": "",
+        "default": null
       },
       {
         "name": "username",
@@ -212,7 +247,8 @@
         "nullable": false,
         "primary_key": false,
         "unique": true,
-        "foreign_key": ""
+        "foreign_key": "",
+        "default": null
       },
       {
         "name": "password_hash",
@@ -220,7 +256,8 @@
         "nullable": false,
         "primary_key": false,
         "unique": false,
-        "foreign_key": ""
+        "foreign_key": "",
+        "default": null
       },
       {
         "name": "role_id",
@@ -228,9 +265,16 @@
         "nullable": false,
         "primary_key": false,
         "unique": false,
-        "foreign_key": "roles.id"
+        "foreign_key": "roles.id",
+        "default": null
       }
-    ]
+    ],
+    "unique_constraints": [
+      [
+        "username"
+      ]
+    ],
+    "check_constraints": []
   },
   {
     "name": "workload_pools",
@@ -241,7 +285,8 @@
         "nullable": false,
         "primary_key": true,
         "unique": false,
-        "foreign_key": ""
+        "foreign_key": "",
+        "default": null
       },
       {
         "name": "academic_year",
@@ -249,7 +294,8 @@
         "nullable": false,
         "primary_key": false,
         "unique": false,
-        "foreign_key": ""
+        "foreign_key": "",
+        "default": null
       },
       {
         "name": "semester",
@@ -257,7 +303,8 @@
         "nullable": false,
         "primary_key": false,
         "unique": false,
-        "foreign_key": ""
+        "foreign_key": "",
+        "default": null
       },
       {
         "name": "group_name",
@@ -265,7 +312,8 @@
         "nullable": false,
         "primary_key": false,
         "unique": false,
-        "foreign_key": ""
+        "foreign_key": "",
+        "default": null
       },
       {
         "name": "discipline_id",
@@ -273,7 +321,8 @@
         "nullable": false,
         "primary_key": false,
         "unique": false,
-        "foreign_key": "disciplines.id"
+        "foreign_key": "disciplines.id",
+        "default": null
       },
       {
         "name": "hours_lecture",
@@ -281,7 +330,8 @@
         "nullable": false,
         "primary_key": false,
         "unique": false,
-        "foreign_key": ""
+        "foreign_key": "",
+        "default": 0
       },
       {
         "name": "hours_practice",
@@ -289,7 +339,8 @@
         "nullable": false,
         "primary_key": false,
         "unique": false,
-        "foreign_key": ""
+        "foreign_key": "",
+        "default": 0
       },
       {
         "name": "weeks",
@@ -297,8 +348,21 @@
         "nullable": false,
         "primary_key": false,
         "unique": false,
-        "foreign_key": ""
+        "foreign_key": "",
+        "default": 18
       }
+    ],
+    "unique_constraints": [
+      [
+        "academic_year",
+        "semester",
+        "group_name",
+        "discipline_id"
+      ]
+    ],
+    "check_constraints": [
+      "hours_lecture >= 0 AND hours_practice >= 0 AND weeks > 0",
+      "semester IN (0, 1, 2)"
     ]
   },
   {
@@ -310,7 +374,8 @@
         "nullable": false,
         "primary_key": true,
         "unique": false,
-        "foreign_key": ""
+        "foreign_key": "",
+        "default": null
       },
       {
         "name": "academic_year",
@@ -318,7 +383,8 @@
         "nullable": false,
         "primary_key": false,
         "unique": false,
-        "foreign_key": ""
+        "foreign_key": "",
+        "default": null
       },
       {
         "name": "semester",
@@ -326,7 +392,8 @@
         "nullable": false,
         "primary_key": false,
         "unique": false,
-        "foreign_key": ""
+        "foreign_key": "",
+        "default": 0
       },
       {
         "name": "pool_id",
@@ -334,7 +401,8 @@
         "nullable": true,
         "primary_key": false,
         "unique": false,
-        "foreign_key": "workload_pools.id"
+        "foreign_key": "workload_pools.id",
+        "default": null
       },
       {
         "name": "hours_lecture",
@@ -342,7 +410,8 @@
         "nullable": true,
         "primary_key": false,
         "unique": false,
-        "foreign_key": ""
+        "foreign_key": "",
+        "default": 0
       },
       {
         "name": "hours_practice",
@@ -350,7 +419,8 @@
         "nullable": true,
         "primary_key": false,
         "unique": false,
-        "foreign_key": ""
+        "foreign_key": "",
+        "default": 0
       },
       {
         "name": "total_hours",
@@ -358,7 +428,8 @@
         "nullable": true,
         "primary_key": false,
         "unique": false,
-        "foreign_key": ""
+        "foreign_key": "",
+        "default": 0
       },
       {
         "name": "teacher_id",
@@ -366,7 +437,8 @@
         "nullable": false,
         "primary_key": false,
         "unique": false,
-        "foreign_key": "teachers.id"
+        "foreign_key": "teachers.id",
+        "default": null
       },
       {
         "name": "discipline_id",
@@ -374,8 +446,16 @@
         "nullable": false,
         "primary_key": false,
         "unique": false,
-        "foreign_key": "disciplines.id"
+        "foreign_key": "disciplines.id",
+        "default": null
       }
-    ]
+    ],
+    "unique_constraints": [
+      [
+        "pool_id",
+        "teacher_id"
+      ]
+    ],
+    "check_constraints": []
   }
 ]

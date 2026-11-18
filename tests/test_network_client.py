@@ -1,60 +1,54 @@
 import os
 from pathlib import Path
-import socket
-import subprocess
-import sys
 import tempfile
-from time import monotonic, sleep
 import unittest
+from unittest.mock import patch
 
 from PyQt6.QtWidgets import QApplication
 
-from ui.api_client import ApiClient, ApiError
+from scripts import run_network
+from ui.api_client import ApiClient
 from ui.network_window import NetworkWindow
 
 
 class NetworkClientTests(unittest.TestCase):
     def test_qt_client_reads_from_running_server(self):
-        with socket.socket() as probe:
-            probe.bind(("127.0.0.1", 0))
-            port = probe.getsockname()[1]
         with tempfile.TemporaryDirectory() as directory:
-            env = {**os.environ, "COLLEGE_DB_URL": f"sqlite:///{Path(directory) / 'staging.db'}",
-                   "QT_QPA_PLATFORM": "offscreen"}
-            with subprocess.Popen([sys.executable, "-m", "uvicorn", "server.api:app", "--port", str(port)],
-                                  env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT) as server:
-                try:
-                    self.check_client(port, server)
-                finally:
-                    server.terminate()
-                    server.communicate(timeout=8)
+            data_dir = Path(directory)
+            standalone_db = data_dir / "standalone.db"
+            env = {"COLLEGE_DB_URL": f"sqlite:///{standalone_db.as_posix()}", "QT_QPA_PLATFORM": "offscreen"}
+            with (patch.dict(os.environ, env), patch.object(run_network, "DATA_DIR", data_dir),
+                  patch.object(run_network, "open_client", self.check_client)):
+                self.assertEqual(run_network.main(), 0)
+            self.assertTrue((data_dir / "network_demo.db").is_file())
+            self.assertFalse(standalone_db.exists())
 
-    def check_client(self, port, server):
-        client = ApiClient(f"http://127.0.0.1:{port}")
-        end = monotonic() + 10
-        while monotonic() < end:
-            try:
-                self.assertEqual(client.request("/health")["status"], "ok")
-                break
-            except ApiError:
-                if server.poll() is not None:
-                    self.fail(server.stdout.read().decode(errors="replace"))
-                sleep(0.1)
-        else:
-            self.fail("Локальный сервер не запустился")
+    def check_client(self, args):
+        self.assertEqual(args[0], "--url")
+        client = ApiClient(args[1])
+        self.assertEqual(client.request("/health")["status"], "ok")
         app = QApplication.instance() or QApplication([])
         user = client.login("operator", "operator123")
         window = NetworkWindow(client, user)
-        self.assertGreater(window.tables["teachers"].rowCount(), 0)
-        self.assertGreater(window.tables["pools"].rowCount(), 0)
-        self.assertGreater(window.tables["assignments"].rowCount(), 0)
-        discipline = client.request("/disciplines")[0]["id"]
-        body = dict(academic_year="2030-2031", semester=1, group_name="QT-DEMO",
-                    discipline_id=discipline, hours_lecture=18, hours_practice=18)
-        client.request("/pools", method="POST", data=body)
-        window.refresh(raise_errors=True)
-        table = window.tables["pools"]
-        self.assertTrue(any(table.item(row, 2).text() == "QT-DEMO" for row in range(table.rowCount())))
-        window.close()
+        try:
+            self.assertGreater(window.tables["teachers"].rowCount(), 0)
+            self.assertGreater(window.tables["pools"].rowCount(), 0)
+            self.assertGreater(window.tables["assignments"].rowCount(), 0)
+            discipline = client.request("/disciplines")[0]["id"]
+            body = dict(academic_year="2030-2031", semester=1, group_name="QT-DEMO",
+                        discipline_id=discipline, hours_lecture=18, hours_practice=18)
+            client.request("/pools", method="POST", data=body)
+            window.refresh(raise_errors=True)
+            year_index = window.year.findData("2030-2031")
+            self.assertGreaterEqual(year_index, 0)
+            window.year.setCurrentIndex(year_index)
+            window.refresh(raise_errors=True)
+            self.assertEqual(window.year.currentData(), "2030-2031")
+            table = window.tables["pools"]
+            self.assertEqual(table.rowCount(), 1)
+            self.assertEqual(table.item(0, 2).text(), "QT-DEMO")
+        finally:
+            window.close()
+            app.processEvents()
         self.assertIsNone(client.token)
-        app.processEvents()
+        return 0

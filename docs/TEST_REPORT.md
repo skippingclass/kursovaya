@@ -1,6 +1,6 @@
 # Протокол проверки проекта
 
-Дата: 2026-11-18T14:40:21
+Дата: 2026-11-18T15:27:34
 
 Выполнено 35 тестов; ошибок 0; непройденных 0.
 
@@ -86,7 +86,7 @@ test_report_filters_and_refresh_preserved (test_ui.UITests.test_report_filters_a
 test_table_numbers_sort_numerically (test_ui.UITests.test_table_numbers_sort_numerically) ... ok
 
 ----------------------------------------------------------------------
-Ran 35 tests in 6.336s
+Ran 35 tests in 7.204s
 
 OK
 ```

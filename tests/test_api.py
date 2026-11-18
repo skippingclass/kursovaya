@@ -11,6 +11,7 @@ from openpyxl import load_workbook
 from database import connection
 from database.models import User
 from server.api import app
+from services.passwords import hash_password
 
 PREFIX = "/api/v1"
 
@@ -50,6 +51,11 @@ class ApiTests(unittest.TestCase):
         spec = self.client.get("/openapi.json").json()
         self.assertIn("HTTPBearer", spec["components"]["securitySchemes"])
         self.assertIn("put", spec["paths"][PREFIX + "/assignments/{assignment_id}"])
+        invalid_response = spec["paths"][PREFIX + "/auth/login"]["post"]["responses"]["422"]
+        self.assertEqual(invalid_response["content"]["application/json"]["schema"]["$ref"],
+                         "#/components/schemas/ApiProblem")
+        self.assertEqual(spec["components"]["schemas"]["ApiProblem"]["properties"]["detail"]["type"], "string")
+        self.assertIsInstance(rejected.json()["detail"], str)
         teacher = self.request("GET", "/teachers", headers=headers).json()[0]["id"]
         card = self.request("GET", f"/teachers/{teacher}", headers=headers)
         self.assertEqual(card.status_code, 200, card.text)
@@ -64,11 +70,14 @@ class ApiTests(unittest.TestCase):
             user = session.query(User).filter_by(username="admin").one()
             user.password_hash = old_hash
             session.commit()
-        self.login("admin", "admin123")
+        headers = self.login("admin", "admin123")
         with connection.get_session() as session:
             user = session.query(User).filter_by(username="admin").one()
             self.assertTrue(user.password_hash.startswith("scrypt$"))
-        self.login("admin", "admin123")
+            user.password_hash = hash_password("updated123")
+            session.commit()
+        self.assertEqual(self.request("GET", "/teachers", headers=headers).status_code, 401)
+        self.login("admin", "updated123")
 
     def test_pool_assignment_rejection_edit_cancel_and_filtered_exports(self):
         headers = self.login("operator", "operator123")
@@ -82,6 +91,8 @@ class ApiTests(unittest.TestCase):
         teacher = get("/teachers")[0]["id"]
         plan = dict(academic_year="2030-2031", semester=2, group_name="API-TEST",
                     discipline_id=discipline, hours_lecture=36, hours_practice=18, weeks=18)
+        self.assertEqual(self.request("PUT", "/pools/0", json=plan, headers=headers).status_code, 422)
+        self.assertEqual(get("/pools", academic_year="2030-2031"), [])
         response = self.request("POST", "/pools", json=plan, headers=headers)
         self.assertEqual(response.status_code, 201, response.text)
         pool = response.json()["id"]
@@ -90,6 +101,7 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(invalid.status_code, 409, invalid.text)
         self.assertEqual(get("/pools", academic_year="2030-2031")[0]["available_lecture"], 36)
         allocation["hours_lecture"] = 18
+        self.assertEqual(self.request("PUT", "/assignments/0", json=allocation, headers=headers).status_code, 422)
         response = self.request("POST", "/assignments", json=allocation, headers=headers)
         self.assertEqual(response.status_code, 201, response.text)
         identifier = response.json()["id"]

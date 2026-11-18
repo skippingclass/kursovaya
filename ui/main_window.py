@@ -206,6 +206,7 @@ class MainWindow(QMainWindow):
         is_adm = is_admin()
 
         self.tabs.setTabVisible(self.users_tab_index, is_adm)
+        self.db_menu.setEnabled(is_adm)
         self.act_backup.setEnabled(is_adm)
         self.act_restore.setEnabled(is_adm)
 

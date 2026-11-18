@@ -9,10 +9,10 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 
 from PyQt6.QtWidgets import QApplication, QMessageBox
-from PyQt6.QtCore import Qt
 from config import APP_NAME
 from database.connection import init_db
 from ui.styles import APP_STYLE
+from ui.i18n import install_russian_translations
 from ui.login_window import LoginWindow
 from ui.main_window import MainWindow
 
@@ -21,6 +21,7 @@ def main():
     # Настройки отображения для High DPI экранов
     app = QApplication(sys.argv)
     app.setApplicationName(APP_NAME)
+    install_russian_translations(app)
     app.setStyleSheet(APP_STYLE)
 
     # Инициализация базы данных и создание таблиц с начальными данными

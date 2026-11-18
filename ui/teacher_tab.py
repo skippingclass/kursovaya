@@ -174,8 +174,8 @@ class TeacherTab(QWidget):
         self.table.setColumnCount(9)
         headers = ["ID", "ФИО преподавателя", "Кафедра / Отделение", "Квалификация", "Стаж", "Телефон", "E-mail", "Статус", "Часы за выбранный год"]
         self.table.setHorizontalHeaderLabels(headers)
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
-        self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
         self.table.setAlternatingRowColors(True)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
@@ -275,6 +275,10 @@ class TeacherTab(QWidget):
             hrs_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.table.setItem(row, 8, hrs_item)
 
+        for row in range(self.table.rowCount()):
+            for column in range(self.table.columnCount()):
+                item = self.table.item(row, column)
+                item.setToolTip(item.text())
         self.status_updated.emit(f"Отображено преподавателей: {len(teachers)}")
 
     def on_add_teacher(self):

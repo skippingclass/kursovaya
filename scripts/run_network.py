@@ -16,7 +16,7 @@ def main():
         port = listener.getsockname()[1]
     url = f"http://127.0.0.1:{port}"
     env = os.environ.copy()
-    env.setdefault("COLLEGE_DB_URL", f"sqlite:///{(DATA_DIR / 'network_demo.db').as_posix()}")
+    env["COLLEGE_DB_URL"] = f"sqlite:///{(DATA_DIR / 'network_demo.db').as_posix()}"
     command = [sys.executable, "-B", "-m", "uvicorn", "server.api:app",
                "--host", "127.0.0.1", "--port", str(port)]
     with subprocess.Popen(command, cwd=BASE_DIR, env=env) as server:

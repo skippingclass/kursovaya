@@ -4,6 +4,7 @@ import re
 import unicodedata
 from datetime import date
 from difflib import SequenceMatcher
+from sqlalchemy import text
 from sqlalchemy.orm import joinedload
 from database.connection import get_session
 from database.models import Teacher, TeacherWorkload, Department
@@ -137,6 +138,11 @@ def _save_teacher(data, teacher_id=None, allow_similar=False):
         return False, error, None
     session = get_session()
     try:
+        dialect = session.bind.dialect.name
+        if dialect == "sqlite":
+            session.execute(text("BEGIN IMMEDIATE"))
+        elif dialect == "postgresql":
+            session.execute(text("LOCK TABLE teachers IN SHARE ROW EXCLUSIVE MODE"))
         if not session.get(Department, data["department_id"]):
             return False, "Кафедра не найдена.", None
         matches = _duplicates(session, data, teacher_id)

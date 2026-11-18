@@ -14,16 +14,16 @@ from database.backup import create_backup, restore_backup
 
 
 class DBSettingsDialog(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, *, allow_backup=True):
         super().__init__(parent)
         self.setWindowTitle("Параметры базы данных")
         self.setFixedWidth(560)
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint)
 
         self.config = load_config()
-        self.init_ui()
+        self.init_ui(allow_backup)
 
-    def init_ui(self):
+    def init_ui(self, allow_backup):
         layout = QVBoxLayout(self)
         layout.setSpacing(14)
         layout.setContentsMargins(24, 24, 24, 24)
@@ -151,8 +151,9 @@ class DBSettingsDialog(QDialog):
         layout.addWidget(self.pg_card)
 
         # 3. Карточка резервного копирования
-        backup_card = QFrame()
+        backup_card = QFrame(self)
         backup_card.setObjectName("panelCard")
+        backup_card.setVisible(allow_backup)
         backup_layout = QVBoxLayout(backup_card)
         backup_layout.setContentsMargins(16, 14, 16, 14)
         backup_layout.setSpacing(8)

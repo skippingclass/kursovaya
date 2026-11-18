@@ -1,4 +1,5 @@
 """Qt screens for the HTTP demonstration of the college system."""
+from datetime import date
 from pathlib import Path
 
 from PyQt6.QtCore import Qt
@@ -57,6 +58,7 @@ class NetworkLogin(QDialog):
         form.addRow(QLabel(client.url.rsplit("/api/v1", 1)[0]))
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         buttons.button(QDialogButtonBox.StandardButton.Ok).setText("Войти")
+        buttons.button(QDialogButtonBox.StandardButton.Cancel).setText("Отмена")
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         form.addRow(buttons)
@@ -81,6 +83,8 @@ class EditForm(QDialog):
         for _, (label, field) in fields.items():
             form.addRow(label, field)
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
+        buttons.button(QDialogButtonBox.StandardButton.Save).setText("Сохранить")
+        buttons.button(QDialogButtonBox.StandardButton.Cancel).setText("Отмена")
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         form.addRow(buttons)
@@ -122,7 +126,7 @@ class NetworkWindow(QMainWindow):
 
         filters = QGridLayout()
         self.search = QLineEdit(placeholderText="Поиск преподавателя")
-        self.year = combo([("Все годы", None)] + [(year, year) for year in client.request("/years")])
+        self.year = combo([("Все годы", None)])
         self.semester = combo([("Все семестры", None), ("Семестр 1", 1), ("Семестр 2", 2), ("Архив", 0)])
         self.teacher = combo([("Все преподаватели", None)])
         self.department = combo([("Все кафедры", None)] +
@@ -187,14 +191,25 @@ class NetworkWindow(QMainWindow):
 
     def refresh_teachers(self):
         current = self.teacher.currentData()
+        teachers = self.client.request("/teachers")
         self.teacher.clear()
         self.teacher.addItem("Все преподаватели", None)
-        for row in self.client.request("/teachers"):
+        for row in teachers:
             self.teacher.addItem(row["full_name"], row["id"])
         self.teacher.setCurrentIndex(max(0, self.teacher.findData(current)))
 
+    def refresh_years(self):
+        current = self.year.currentData()
+        years = self.client.request("/years")
+        self.year.clear()
+        self.year.addItem("Все годы", None)
+        for year in years:
+            self.year.addItem(year, year)
+        self.year.setCurrentIndex(max(0, self.year.findData(current)))
+
     def refresh(self, *, raise_errors=False):
         try:
+            self.refresh_years()
             self.refresh_teachers()
             filters = self.filters()
             parameters = {
@@ -240,7 +255,9 @@ class NetworkWindow(QMainWindow):
 
     def pool_fields(self, row):
         disciplines = self.client.request("/disciplines")
-        year = row.get("academic_year", self.year.currentData() or self.year.itemData(1) or "")
+        today = date.today()
+        start = today.year - (today.month < 9)
+        year = row.get("academic_year", self.year.currentData() or f"{start}-{start + 1}")
         return {
             "academic_year": ("Учебный год", QLineEdit(year)),
             "semester": ("Семестр", combo([("1", 1), ("2", 2)], row.get("semester") or 1)),

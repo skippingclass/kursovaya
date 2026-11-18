@@ -2,6 +2,7 @@
 import io
 import json
 import os
+import platform
 import sys
 import unittest
 from datetime import datetime
@@ -25,7 +26,7 @@ if __name__=='__main__':
     result=unittest.TextTestRunner(stream=stream,verbosity=2,resultclass=Result).run(suite)
     log=stream.getvalue(); print(log)
     data=dict(date=datetime.now().isoformat(timespec='seconds'),total=result.testsRun,
-              failures=len(result.failures),errors=len(result.errors),tests=result.records)
+              platform=platform.system(), failures=len(result.failures),errors=len(result.errors),tests=result.records)
     (ROOT/'docs/test_results.json').write_text(json.dumps(data,ensure_ascii=False,indent=2),encoding='utf-8')
     lines=['# Протокол проверки проекта','',f'Дата: {data["date"]}', '',
            f'Выполнено {result.testsRun} тестов; ошибок {len(result.errors)}; непройденных {len(result.failures)}.',
@@ -33,6 +34,6 @@ if __name__=='__main__':
            'Проверки выполняются на временных SQLite-базах, включая отдельную модель прежней схемы.', '',
            '| Проверка | Результат |', '|---|---|']
     lines += [f'| `{r["test"]}` | {r["status"]} |' for r in result.records]
-    lines += ['', 'Проверены HTTP API, сервисы и интерфейсы Qt в режиме offscreen. Прогон выполнен на Linux и SQLite.', '', '```text',log.strip(),'```','']
+    lines += ['', f'Проверены HTTP API, сервисы и интерфейсы Qt в режиме offscreen. Прогон выполнен на {data["platform"]} и SQLite.', '', '```text',log.strip(),'```','']
     (ROOT/'docs/TEST_REPORT.md').write_text('\n'.join(lines),encoding='utf-8')
     sys.exit(not result.wasSuccessful())
