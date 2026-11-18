@@ -1,9 +1,25 @@
 {
-  "date": "2026-11-10T23:44:54",
-  "total": 31,
+  "date": "2026-11-18T14:40:21",
+  "total": 35,
   "failures": 0,
   "errors": 0,
   "tests": [
+    {
+      "test": "test_api.ApiTests.test_legacy_password_migrates_after_login",
+      "status": "passed"
+    },
+    {
+      "test": "test_api.ApiTests.test_login_roles_contract_and_logout",
+      "status": "passed"
+    },
+    {
+      "test": "test_api.ApiTests.test_pool_assignment_rejection_edit_cancel_and_filtered_exports",
+      "status": "passed"
+    },
+    {
+      "test": "test_network_client.NetworkClientTests.test_qt_client_reads_from_running_server",
+      "status": "passed"
+    },
     {
       "test": "test_system.SystemTests.test_backup_round_trip_and_atomic_rollback",
       "status": "passed"

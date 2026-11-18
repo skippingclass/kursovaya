@@ -1,15 +1,19 @@
 # Протокол проверки проекта
 
-Дата: 2026-11-10T23:44:54
+Дата: 2026-11-18T14:40:21
 
-Выполнено 31 тестов; ошибок 0; непройденных 0.
+Выполнено 35 тестов; ошибок 0; непройденных 0.
 
 Команда: `python scripts/check_project.py`.
 
-Проверки выполняются на временных SQLite-базах и копии исходной базы. Рабочая база не изменяется.
+Проверки выполняются на временных SQLite-базах, включая отдельную модель прежней схемы.
 
 | Проверка | Результат |
 |---|---|
+| `test_api.ApiTests.test_legacy_password_migrates_after_login` | passed |
+| `test_api.ApiTests.test_login_roles_contract_and_logout` | passed |
+| `test_api.ApiTests.test_pool_assignment_rejection_edit_cancel_and_filtered_exports` | passed |
+| `test_network_client.NetworkClientTests.test_qt_client_reads_from_running_server` | passed |
 | `test_system.SystemTests.test_backup_round_trip_and_atomic_rollback` | passed |
 | `test_system.SystemTests.test_concurrent_capacity` | passed |
 | `test_system.SystemTests.test_contact_duplicate` | passed |
@@ -42,9 +46,13 @@
 | `test_ui.UITests.test_report_filters_and_refresh_preserved` | passed |
 | `test_ui.UITests.test_table_numbers_sort_numerically` | passed |
 
-Проверены сервисы и запуск Qt в режиме offscreen. PostgreSQL-сервер и работа на Windows/macOS в этом прогоне не проверялись.
+Проверены HTTP API, сервисы и интерфейсы Qt в режиме offscreen. Прогон выполнен на Linux и SQLite.
 
 ```text
+test_legacy_password_migrates_after_login (test_api.ApiTests.test_legacy_password_migrates_after_login) ... ok
+test_login_roles_contract_and_logout (test_api.ApiTests.test_login_roles_contract_and_logout) ... ok
+test_pool_assignment_rejection_edit_cancel_and_filtered_exports (test_api.ApiTests.test_pool_assignment_rejection_edit_cancel_and_filtered_exports) ... ok
+test_qt_client_reads_from_running_server (test_network_client.NetworkClientTests.test_qt_client_reads_from_running_server) ... ok
 test_backup_round_trip_and_atomic_rollback (test_system.SystemTests.test_backup_round_trip_and_atomic_rollback) ... ok
 test_concurrent_capacity (test_system.SystemTests.test_concurrent_capacity) ... ok
 test_contact_duplicate (test_system.SystemTests.test_contact_duplicate) ... ok
@@ -78,7 +86,7 @@ test_report_filters_and_refresh_preserved (test_ui.UITests.test_report_filters_a
 test_table_numbers_sort_numerically (test_ui.UITests.test_table_numbers_sort_numerically) ... ok
 
 ----------------------------------------------------------------------
-Ran 31 tests in 1.442s
+Ran 35 tests in 6.336s
 
 OK
 ```

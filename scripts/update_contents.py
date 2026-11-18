@@ -18,10 +18,12 @@ def main():
     pages={}
     reader=PdfReader(args.pdf)
     for index,page in enumerate(reader.pages):
-        if index==0:continue
-        start=normalize(page.extract_text())[:300]
+        if index < 3:
+            continue
+        start=normalize(page.extract_text())[:350]
         for title in titles:
-            if start.startswith(title):pages[title]=index+2
+            if title in start and title not in pages:
+                pages[title] = index + 1
     missing=set(titles)-pages.keys()
     if missing:raise RuntimeError('Не найдены разделы '+str(missing))
     for p in d.paragraphs:
